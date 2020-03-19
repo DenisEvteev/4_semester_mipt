@@ -30,7 +30,7 @@ Hash_Table<Key>::Hash_Table(std::size_t size)
 {
 
 	if (number_allocations) {
-		if (size != _HASH_TABLE_SIZE || !alloc_ptr)
+		if (size != _HASH_TABLE_SIZE)
 			throw std::runtime_error("Redefine operator new in Hash_Table made a very strange thing!!!");
 		hash_t = alloc_ptr;
 		alloc_ptr = nullptr;
@@ -49,6 +49,7 @@ void Hash_Table<Key>::operator delete(void *ptr) noexcept
 {
 	::operator delete(ptr);
 	delete[](alloc_ptr);
+	alloc_ptr = nullptr;
 	if (number_allocations)
 		--number_allocations;
 
@@ -465,7 +466,7 @@ std::ofstream &operator<<(std::ofstream &out, const Hash_Table<T> &ht)
 	for (std::size_t i = 0; i < ht.size(); ++i) {
 		auto it = map.equal_range(i);
 		out << "[ " << i << " ] === ";
-		if (it.first == map.end() || it.first == it.second) {
+		if (it.first == map.end() || it.second == map.end()) {
 			out << "null\n";
 			continue;
 		}

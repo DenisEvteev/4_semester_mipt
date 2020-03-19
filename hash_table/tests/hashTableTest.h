@@ -52,8 +52,8 @@ CPPUNIT_TEST_SUITE(hashTableTest);
 		CPPUNIT_TEST(testIncrementDecrementOperators);
 		CPPUNIT_TEST(testOperatorDumpingIntoFile);
 		CPPUNIT_TEST(testEasyCoverage);
-		CPPUNIT_TEST_EXCEPTION(testRedefineAllocOpers, std::runtime_error);
-		CPPUNIT_TEST_EXCEPTION(testConstructorThrow, std::bad_alloc);
+		CPPUNIT_TEST(testRedefineAllocOpers);
+		CPPUNIT_TEST(testConstructorThrow);
 	CPPUNIT_TEST_SUITE_END();
 
 

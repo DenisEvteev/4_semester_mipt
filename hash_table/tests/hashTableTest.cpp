@@ -9,25 +9,27 @@ void hashTableTest::testConstructorThrow()
 {
 	Hash_Table<int> hashTable(38023802);
 	CPPUNIT_ASSERT_EQUAL(static_cast<std::size_t>(38023802), hashTable.size());
-	Hash_Table<int>(999999999999999);
+	try {
+		Hash_Table<int> ht(999999999999999);
+	}
+	catch (const std::bad_alloc &el) {}
 
 }
 
 void hashTableTest::testRedefineAllocOpers()
 {
-	auto simple_cover_one_constructor = new Hash_Table<int>;
+	auto simple_cover_one_constructor = new Hash_Table<int>();
 	CPPUNIT_ASSERT_EQUAL(static_cast<std::size_t>(128), simple_cover_one_constructor->size());
 	/*The line below will cause an exception of type std::runtime_error*/
-
-//	try{
-	auto hashTable = new Hash_Table<int>(38023802);
-//		/*compilator will implicitly call the redefine operator delete in this case
-//		 * As I have implemented it and we didn't manage to contruct the whole object and
-//		 * return pointer to it*/
-//	}catch(const std::runtime_error& er){
-//		delete simple_cover_one_constructor;
-//	}
-	delete simple_cover_one_constructor;
+	try {
+		auto hashTable = new Hash_Table<int>(38023802);
+		/*compilator will implicitly call the redefine operator delete in this case
+		 * As I have implemented it and we didn't manage to contruct the whole object and
+		 * return pointer to it*/
+	}
+	catch (...) {
+		delete simple_cover_one_constructor;
+	}
 
 }
 
@@ -166,7 +168,6 @@ void hashTableTest::testOperatorDumpingIntoFile()
 	for (int i = 0; i < 35; ++i) {
 		ht.insert(rand());
 	}
-	CPPUNIT_ASSERT(!ht[0]);
 	DUMP_IN_FILE("small_hash_table", logFile2, ht);
 }
 
