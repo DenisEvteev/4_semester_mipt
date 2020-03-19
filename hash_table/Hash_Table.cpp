@@ -14,12 +14,16 @@ int Hash_Table<Key>::number_allocations = 0;
 template<class Key>
 void *Hash_Table<Key>::operator new(std::size_t size)
 {
-	NewHandlerHolder(std::set_new_handler(mem_handler));
-	alloc_ptr = new Node *[_HASH_TABLE_SIZE]{
-		nullptr}; // at this string I call operator new[] to allocate memory for the array of Node*
+	NewHandlerHolder handler(std::set_new_handler(mem_handler));
+	/*[+1] means reserving additional memory for Iterator to the end of this container*/
+	alloc_ptr = new Node *[(_HASH_TABLE_SIZE + 1)]{nullptr};
 	++number_allocations;
 	return ::operator new(size);
 }
+
+template<class T>
+const std::size_t &Hash_Table<T>::size() const noexcept
+{ return n_buckets; }
 
 template<class Key>
 Hash_Table<Key>::Hash_Table(std::size_t size)
@@ -33,8 +37,9 @@ Hash_Table<Key>::Hash_Table(std::size_t size)
 		--number_allocations;
 	}
 	else {
-		NewHandlerHolder(std::set_new_handler(mem_handler));
-		hash_t = new Node *[size]{nullptr};
+		NewHandlerHolder handler(std::set_new_handler(mem_handler));
+		/*[+1] means reserving additional memory for Iterator to the end of this container*/
+		hash_t = new Node *[(size + 1)]{nullptr};
 		n_buckets = size;
 	}
 }
@@ -50,11 +55,27 @@ void Hash_Table<Key>::operator delete(void *ptr) noexcept
 }
 
 template<class T>
+typename Hash_Table<T>::Node *Hash_Table<T>::operator[](const std::size_t i)
+{
+	return const_cast<Node *>((static_cast<const Hash_Table<T> &>(*this)).operator[](i));
+}
+
+template<class T>
+const typename Hash_Table<T>::Node *Hash_Table<T>::operator[](const std::size_t i) const
+{
+	if (i >= n_buckets)
+		throw std::out_of_range("You aren't allowed to access this part of memory");
+	return hash_t[i];
+}
+
+template<class T>
 Hash_Table<T>::Hash_Table(const Hash_Table<T> &ht)
 	: n_buckets(ht.n_buckets)
 {
-	NewHandlerHolder(std::set_new_handler(mem_handler));
-	hash_t = new Node *[n_buckets]{nullptr};
+	NewHandlerHolder handler(std::set_new_handler(mem_handler));
+	/*A very important moment to allocate memory for one more bucket ([n_bucket + 1])
+	 * to have a valid memory to create an Iterator to the element after the last one*/
+	hash_t = new Node *[(n_buckets + 1)]{nullptr};
 	for (std::size_t i = 0; i < n_buckets; ++i)
 		hash_t[i] = deep_copy_bucket(ht[i]);
 
@@ -68,9 +89,10 @@ Hash_Table<T> &Hash_Table<T>::operator=(const Hash_Table<T> &ht)
 			destroy_bucket(hash_t[i]);
 		delete[] hash_t;
 
-		NewHandlerHolder(std::set_new_handler(mem_handler));
+		NewHandlerHolder handler(std::set_new_handler(mem_handler));
 		n_buckets = ht.n_buckets;
-		hash_t = new Node *[n_buckets]{nullptr};
+		/*The same words as in assignment operator which is represented above*/
+		hash_t = new Node *[(n_buckets + 1)]{nullptr};
 		for (std::size_t i = 0; i < n_buckets; ++i)
 			hash_t[i] = deep_copy_bucket(ht[i]);
 
@@ -95,7 +117,7 @@ typename Hash_Table<T>::Node *Hash_Table<T>::deep_copy_bucket(const Hash_Table<T
 	if (!bucket_ptr)
 		return nullptr;
 	else {
-		NewHandlerHolder(std::set_new_handler(mem_handler));
+		NewHandlerHolder handler(std::set_new_handler(mem_handler));
 
 #ifdef C_PLUS_PLUS_IS_ALLOWED
 		std::stack<Node*> nodes;
@@ -135,17 +157,15 @@ Hash_Table<Key>::~Hash_Table<Key>()
 {
 	for (std::size_t i = 0; i < n_buckets; ++i)
 		destroy_bucket(hash_t[i]);
-
 	delete[] hash_t;
-
 }
 
 template<class Key>
-void Hash_Table<Key>::mem_handler() noexcept
+void Hash_Table<Key>::mem_handler()
 {
 	std::cerr << "Operator new failed. There aren't any vacant memory."
 				 "It has happened in redefine operator new for template Hash_Table class" << std::endl;
-	std::abort();
+	throw std::bad_alloc();
 }
 
 template<class T>
@@ -156,7 +176,7 @@ bool Hash_Table<T>::insert(const T &t)
 	if (it != end())
 		return false;
 	else {
-		NewHandlerHolder(std::set_new_handler(mem_handler));
+		NewHandlerHolder handler(std::set_new_handler(mem_handler)); // It's just wonderfull
 		if (!hash_t[hash_value]) {
 			hash_t[hash_value] = new Node(t); // allocate and construct the first element in the bucket
 		}
@@ -174,13 +194,13 @@ template<class T>
 typename Hash_Table<T>::Iterator Hash_Table<T>::findEl(const T &el, std::size_t &bucket)
 {
 	bucket = hash_func(el);
-
 	if (hash_t[bucket]) {
 		Iterator it(bucket, n_buckets, hash_t[bucket], hash_t);
 		Iterator it_end(bucket + 1, n_buckets, hash_t[bucket + 1], hash_t);
 		for (; it != it_end; ++it) {
 			if (*it == el)
 				return it;
+
 		}
 	}
 	return end();
@@ -400,3 +420,54 @@ bool Hash_Table<T>::erase(const T &t)
 	}
 }
 
+template<class T>
+void Hash_Table<T>::showDistribution(info &map) const
+{
+	if (!map.empty())
+		map.clear();
+	for (std::size_t i = 0; i < n_buckets; ++i) {
+		Iterator it(i, n_buckets, hash_t[i], hash_t);
+		Iterator it_next(i + 1, n_buckets, hash_t[i + 1], hash_t);
+		while (it != it_next) {
+			try {
+				T value = *it; // it's a very bad string of code [but this time It would be like this]
+				map.insert(std::make_pair(i, value));
+			}
+			catch (const std::runtime_error &er) {
+				break;
+			}
+			++it;
+		}
+		std::cout << i << std::endl;
+	}
+}
+
+template<class T>
+std::ofstream &operator<<(std::ofstream &out, const Hash_Table<T> &ht)
+{
+	std::multimap<std::size_t, T> map;
+	ht.showDistribution(map);
+	for (std::size_t i = 0; i < ht.size(); ++i) {
+		auto it = map.equal_range(i);
+		out << "[ " << i << " ] === ";
+		if (it.first == map.end()) {
+			out << "null\n";
+			continue;
+		}
+		for (auto ip = it.first; ip != it.second;) {
+			out << (*ip).second;
+			++ip;
+			if (ip != it.second)
+				out << ", ";
+			else {
+				out << ";   [ " << map.count(i) << " ]\n";
+			}
+		}
+	}
+	return out;
+}
+
+template
+class Hash_Table<int>; //explicit declaration of instantiation of Hash_Table class for int type
+template std::ofstream &operator<<(std::ofstream &out,
+								   const Hash_Table<int> &ht); //explicit declaration of operator << for int template argument

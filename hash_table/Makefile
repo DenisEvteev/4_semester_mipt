@@ -1,10 +1,22 @@
-CXXFLAGS = -Wall
 CXX = g++
+GCOVFLAGS = -ftest-coverage -fprofile-arcs
+CXXFLAGS = -Wall $(GCOVFLAGS) -g
+LDLIBS = -lcppunit
 
-hash_table : main.o
+SOURCE = Hash_Table.h
+TEST_SRC = hashTableTest.h
+OBJS = main.o hashTableTest.o Hash_Table.o
+
+HashTable : $(OBJS)
+	$(CXX) $^ -o $@ $(LDLIBS) $(LDFLAGS) $(GCOVFLAGS)
 	
-main.o : Hash_Table.hpp Hash_Table.h
+main.o : $(TEST_SRC)
 
-clean : 
-	rm main.o 
+Hash_Table.o : $(SOURCE)
 
+TEST_SRC += $(SOURCE)
+
+hashTableTest.o : $(TEST_SRC)
+
+clean :
+	rm *.o HashTable *.gcno *.gcda *.h.gcov *.cpp.gcov *.gcov

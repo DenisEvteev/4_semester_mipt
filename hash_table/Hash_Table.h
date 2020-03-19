@@ -12,26 +12,39 @@
 #include <iterator>
 #include <functional>
 #include <stack>
-
+#include <map>
+#include <fstream>
 
 //#define C_PLUS_PLUS_IS_ALLOWED 3802
+//#define DEBUG_PRINT_HASH_TABLE 2020
 
 enum SIZE
 {
 	_HASH_TABLE_SIZE = 128
 };
 
+template<class T>
+class Hash_Table;
+template<class T>
+std::ofstream &operator<<(std::ofstream &out, const Hash_Table<T> &ht);
+
 template<class Key>
 class Hash_Table
 {
 public :
+	/*This multimap will contain the distribution of buckets and its respective values
+	 * in sort order. Via this container I will be able to show the result print it to file or STDOUT_FILENO*/
+	using info = std::multimap<std::size_t, Key>;
 
 	explicit Hash_Table(std::size_t size = _HASH_TABLE_SIZE);
 	~Hash_Table();
 	Hash_Table(const Hash_Table &hash_table);
 	Hash_Table &operator=(const Hash_Table &ht);
+	const std::size_t &size() const noexcept;
 	static void *operator new(std::size_t size);
 	static void operator delete(void *ptr) noexcept;
+	void showDistribution(info &map) const;
+	friend std::ofstream &operator<<<>(std::ofstream &out, const Hash_Table<Key> &ht);
 private :
 
 	class Node
@@ -116,11 +129,10 @@ public:
 
 	bool insert(const Key &key);
 	bool erase(const Key &key);
-//
-//	bool operator==(const Hash_Table<Key>& ht)const;
-//	bool operator!=(const Hash_Table<Key>& ht)const;
-
-
+	/*These operators will throw an exception of type std::out_of_range in case when
+	 * i is out of bound array hash_t*/
+	Node *operator[](const std::size_t i);
+	const Node *operator[](const std::size_t i) const;
 
 private :
 
@@ -128,7 +140,7 @@ private :
 	std::size_t n_buckets = _HASH_TABLE_SIZE;
 	static int number_allocations;
 	static Node **alloc_ptr;       // It's a pointer which I'm going to use for hash_t in the case of dynamic alloc
-	static void mem_handler() noexcept;
+	static void mem_handler();
 	std::size_t hash_func(const Key &key) noexcept;
 
 };
