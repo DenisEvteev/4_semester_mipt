@@ -54,7 +54,6 @@ private :
 		Key value;
 	public:
 		explicit Node(const Key &t);
-		Node(Node *left, Node *right, const Key &key);
 		Node() = delete;
 		const Node *get_right() const noexcept;
 		void set_right(Node *right) noexcept;
@@ -63,6 +62,7 @@ private :
 		Node *get_left() noexcept;
 		Node *get_right() noexcept;
 		const Key &get_value() const noexcept;
+		Node *ptr_to_last_in_bucket(const Node *ptr_from) const noexcept;
 	};
 
 	Node *deep_copy_bucket(const Node *bucket_ptr) const;
@@ -141,7 +141,7 @@ private :
 	static int number_allocations;
 	static Node **alloc_ptr;       // It's a pointer which I'm going to use for hash_t in the case of dynamic alloc
 	static void mem_handler();
-	std::size_t hash_func(const Key &key) noexcept;
+	std::size_t hash_func(const Key &key);
 
 };
 

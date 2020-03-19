@@ -1,4 +1,4 @@
-#include "hashTableTest.h"
+#include "tests/hashTableTest.h"
 #include "Hash_Table.h"
 #include <fstream>
 #include <csignal>
@@ -33,6 +33,7 @@ int main(int argc, char **argv)
 		std::cerr << "error in sigaction\n";
 		std::abort();
 	}
+
 
 	int seed{0};
 	(argc == 2) ? seed = atoi(argv[1]) : seed = SEED;

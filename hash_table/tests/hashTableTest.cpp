@@ -27,6 +27,7 @@ void hashTableTest::testRedefineAllocOpers()
 //	}catch(const std::runtime_error& er){
 //		delete simple_cover_one_constructor;
 //	}
+	delete simple_cover_one_constructor;
 
 }
 
@@ -87,9 +88,9 @@ void hashTableTest::testCopyConstructorAssignmentOperator()
 {
 	//----------------------difficult test---------------------------//
 	//create Hash_Table filling it with [random values]
-	Hash_Table<int> ht(static_cast<std::size_t>(4000));
-	for (int i = 0; i < 1000; ++i) {
-		CPPUNIT_ASSERT(ht.insert(rand()));
+	Hash_Table<int> ht(500);
+	for (int i = 0; i < 2000; ++i) {
+		ht.insert(rand());
 	}
 	Hash_Table<int> copy = ht;                                      //copy constructor
 	CPPUNIT_ASSERT_EQUAL(ht.size(), copy.size());
@@ -111,6 +112,78 @@ void hashTableTest::testCopyConstructorAssignmentOperator()
 	empty_ht.showDistribution(initial);
 	copy.showDistribution(second);
 	CPPUNIT_ASSERT(second == initial);
+}
+
+void hashTableTest::testIncrementDecrementOperators()
+{
+	std::size_t number_insertions{0};
+	Hash_Table<int> ht(512);
+	for (int i = 0; i < 5000; ++i) {
+		if (ht.insert(rand()))
+			++number_insertions;
+	}
+	map save_state;
+	ht.showDistribution(save_state);
+	Hash_Table<int>::Iterator it = ht.begin();
+	Hash_Table<int>::Iterator end = ht.end();
+	std::size_t count = 0;
+	for (; it != end; it++) {
+		++count;
+	}
+	CPPUNIT_ASSERT_EQUAL(number_insertions, count);
+	CPPUNIT_ASSERT(it == ht.end());
+	map check_ht_after_traversing;
+	ht.showDistribution(check_ht_after_traversing);
+	CPPUNIT_ASSERT(save_state == check_ht_after_traversing);
+	//----------------------prefix decrement---------------------------//
+	for (; it != ht.begin(); --it) {
+		count--;
+	}
+	CPPUNIT_ASSERT_EQUAL(static_cast<std::size_t>(0), count);
+	CPPUNIT_ASSERT(it == ht.begin());
+	//----------------------postfix decrement--------------------------//
+	it = ht.end();
+	count = 0;
+	for (; !(it == ht.begin()); it--) {
+		count++;
+	}
+	CPPUNIT_ASSERT_EQUAL(number_insertions, count);
+	CPPUNIT_ASSERT(it == ht.begin());
+	//-----------------------check invariant of this hash_table---------------------//
+	ht.showDistribution(check_ht_after_traversing);
+	CPPUNIT_ASSERT(save_state == check_ht_after_traversing);
+}
+
+void hashTableTest::testOperatorDumpingIntoFile()
+{
+	Hash_Table<int> ht(3802);
+	for (int i = 0; i < 10000; ++i) {
+		ht.insert(rand());
+	}
+	DUMP_IN_FILE("big_hash_table", logFile1, ht);
+	//------------------check dumping hash_table with empty buckets------------------//
+	ht = Hash_Table<int>();
+	for (int i = 0; i < 35; ++i) {
+		ht.insert(rand());
+	}
+	CPPUNIT_ASSERT(!ht[0]);
+	DUMP_IN_FILE("small_hash_table", logFile2, ht);
+}
+
+void hashTableTest::testEasyCoverage()
+{
+	Hash_Table<int> ht;
+	auto it = ht.begin();
+	it--;
+	CPPUNIT_ASSERT(it == ht.begin());
+	//--------check postfix increment----------------//
+	it = ht.end();
+	it++;
+	CPPUNIT_ASSERT(it == ht.end());
+	//---------check operator [] in class Hash_Table--------//
+	for (int i = 0; i < 128; ++i) {
+		CPPUNIT_ASSERT(!ht[0]);
+	}
 }
 
 void hashTableTest::setUp()

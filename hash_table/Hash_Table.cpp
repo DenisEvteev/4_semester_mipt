@@ -211,11 +211,6 @@ Hash_Table<Key>::Node::Node(const Key &t)
 	: value(t)
 {}
 
-template<class Key>
-Hash_Table<Key>::Node::Node(Node *left, Node *right, const Key &key)
-	: left_(left), right_(right), value(key)
-{}
-
 template<class T>
 void Hash_Table<T>::Node::set_left(Hash_Table<T>::Node *left) noexcept
 {
@@ -230,11 +225,10 @@ void Hash_Table<T>::Node::set_right(Hash_Table<T>::Node *right) noexcept
 
 template<class T>
 Hash_Table<T>::Iterator::Iterator(size_t n, size_t max, Node *ptr, Node **hash_p)
-	: ptr_(ptr), hash_t(hash_p)
+	: nbucket_(n), max_buckets(max), ptr_(ptr), hash_t(hash_p)
 {
 	if (n > max)
 		throw std::runtime_error("negative value for the number of bucket");
-	nbucket_ = n;
 }
 
 template<class T>
@@ -268,28 +262,28 @@ const typename Hash_Table<T>::Node *Hash_Table<T>::Iterator::operator->() const
 template<class T>
 typename Hash_Table<T>::Iterator &Hash_Table<T>::Iterator::operator++() noexcept
 {
-	if (ptr_->get_right()) {
-		ptr_ = ptr_->get_right();
-		return (*this);
-	}
-	else {
+	if (!ptr_ ||
+		!ptr_->get_right()) {
 		if (nbucket_ <= max_buckets - 1) {
 			++nbucket_;
 			ptr_ = hash_t[nbucket_];
 		}
 		return (*this);
 	}
+	else {
+		ptr_ = ptr_->get_right();
+		return (*this);
+	}
+
 }
 
 template<class T>
 const typename Hash_Table<T>::Iterator Hash_Table<T>::Iterator::operator++(int)
 {
 	Node *save_current_ptr = ptr_;
-	if (ptr_->get_right()) {
-		ptr_ = ptr_->get_right();
-		return Iterator(nbucket_, max_buckets, save_current_ptr, hash_t);
-	}
-	else {
+
+	if (!ptr_ ||
+		!ptr_->get_right()) {
 		if (nbucket_ <= max_buckets - 1) {
 			size_t save_nbucket_ = nbucket_;
 			++nbucket_;
@@ -298,39 +292,61 @@ const typename Hash_Table<T>::Iterator Hash_Table<T>::Iterator::operator++(int)
 		}
 		return Iterator(nbucket_, max_buckets, save_current_ptr, hash_t);
 	}
+	else {
+		ptr_ = ptr_->get_right();
+		return Iterator(nbucket_, max_buckets, save_current_ptr, hash_t);
+	}
+
 }
 
 template<class T>
 typename Hash_Table<T>::Iterator &Hash_Table<T>::Iterator::operator--() noexcept
 {
-	if (ptr_->get_left()) {
+	if (!ptr_
+		|| !ptr_->get_left()) {
+		if (nbucket_ > 0) {
+			--nbucket_;
+			ptr_ = hash_t[nbucket_]->ptr_to_last_in_bucket(hash_t[nbucket_]);
+		}
+		return (*this);
+
+	}
+	else {
 		ptr_ = ptr_->get_left();
 		return (*this);
 	}
-	else {
-		if (nbucket_ > 0) {
-			--nbucket_;
-			ptr_ = hash_t[nbucket_];
-		}
-		return (*this);
-	}
+
 }
+
+template<class T>
+typename Hash_Table<T>::Node *Hash_Table<T>::Node::ptr_to_last_in_bucket(const Node *ptr_from) const noexcept
+{
+	if (!ptr_from)
+		return nullptr;
+	while (ptr_from->get_right()) {
+		ptr_from = ptr_from->get_right();
+	}
+	return const_cast<Node *>(ptr_from);
+
+}
+
 template<class T>
 const typename Hash_Table<T>::Iterator Hash_Table<T>::Iterator::operator--(int)
 {
 	Node *save_current_node = ptr_;
-	if (ptr_->get_left()) {
-		ptr_ = ptr_->get_left();
-		return Iterator(nbucket_, max_buckets, save_current_node, hash_t);
-	}
-	else {
+	if (!ptr_ ||
+		!ptr_->get_left()) {
 		if (nbucket_ > 0) {
 			size_t save_nbucket_ = nbucket_;
 			--nbucket_;
-			ptr_ = hash_t[nbucket_];
+			ptr_ = hash_t[nbucket_]->ptr_to_last_in_bucket(hash_t[nbucket_]);
 			return Iterator(save_nbucket_, max_buckets, save_current_node, hash_t);
 		}
 		return Iterator(nbucket_, max_buckets, ptr_, hash_t);
+	}
+	else {
+		ptr_ = ptr_->get_left();
+		return Iterator(nbucket_, max_buckets, save_current_node, hash_t);
 	}
 }
 
@@ -359,7 +375,7 @@ typename Hash_Table<T>::Iterator Hash_Table<T>::end()
 }
 
 template<class T>
-std::size_t Hash_Table<T>::hash_func(const T &key) noexcept
+std::size_t Hash_Table<T>::hash_func(const T &key)
 {
 	static std::hash<T> hash_f;
 	return hash_f(key) % n_buckets;
@@ -438,7 +454,6 @@ void Hash_Table<T>::showDistribution(info &map) const
 			}
 			++it;
 		}
-		std::cout << i << std::endl;
 	}
 }
 
@@ -450,7 +465,7 @@ std::ofstream &operator<<(std::ofstream &out, const Hash_Table<T> &ht)
 	for (std::size_t i = 0; i < ht.size(); ++i) {
 		auto it = map.equal_range(i);
 		out << "[ " << i << " ] === ";
-		if (it.first == map.end()) {
+		if (it.first == map.end() || it.first == it.second) {
 			out << "null\n";
 			continue;
 		}
@@ -460,7 +475,7 @@ std::ofstream &operator<<(std::ofstream &out, const Hash_Table<T> &ht)
 			if (ip != it.second)
 				out << ", ";
 			else {
-				out << ";   [ " << map.count(i) << " ]\n";
+				out << ";   { " << map.count(i) << " }\n";
 			}
 		}
 	}
