@@ -1,4 +1,0 @@
-/home/user/Downloads/apps/CLion/ch-0/193.6015.37/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/user/CLionProjects/4_semester_mipt/hash_table
--- Configuring done
--- Generating done
--- Build files have been written to: /home/user/CLionProjects/4_semester_mipt/hash_table/cmake-build-debug
