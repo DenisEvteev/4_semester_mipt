@@ -91,9 +91,7 @@ void hashTableTest::testCopyConstructorAssignmentOperator()
 	//----------------------difficult test---------------------------//
 	//create Hash_Table filling it with [random values]
 	Hash_Table<int> ht(500);
-	for (int i = 0; i < 2000; ++i) {
-		ht.insert(rand());
-	}
+	_FILL_HASH_TABLE_RANDOM_NUMBERS_IN_RANGE(ht, 2000);
 	Hash_Table<int> copy = ht;                                      //copy constructor
 	CPPUNIT_ASSERT_EQUAL(ht.size(), copy.size());
 	map initial, second;
@@ -159,15 +157,11 @@ void hashTableTest::testIncrementDecrementOperators()
 void hashTableTest::testOperatorDumpingIntoFile()
 {
 	Hash_Table<int> ht(3802);
-	for (int i = 0; i < 10000; ++i) {
-		ht.insert(rand());
-	}
+	_FILL_HASH_TABLE_RANDOM_NUMBERS_IN_RANGE(ht, 10000);
 	DUMP_IN_FILE("big_hash_table", logFile1, ht);
 	//------------------check dumping hash_table with empty buckets------------------//
-	ht = Hash_Table<int>();
-	for (int i = 0; i < 35; ++i) {
-		ht.insert(rand());
-	}
+	ht = Hash_Table<int>(); // to say the truth move assignment operator will work here
+	_FILL_HASH_TABLE_RANDOM_NUMBERS_IN_RANGE(ht, 35);
 	DUMP_IN_FILE("small_hash_table", logFile2, ht);
 }
 
@@ -185,6 +179,53 @@ void hashTableTest::testEasyCoverage()
 	for (int i = 0; i < 128; ++i) {
 		CPPUNIT_ASSERT(!ht[0]);
 	}
+}
+
+void hashTableTest::testMoveConstructor()
+{
+	Hash_Table<int> ht;
+	map initial_map;
+	/*check function showDistribution for returning empty map
+	 * in case when all the cells in hash_table are just raw */
+	ht.showDistribution(initial_map);
+	CPPUNIT_ASSERT(initial_map.empty());
+	_FILL_HASH_TABLE_RANDOM_NUMBERS_IN_RANGE(ht, 1128);
+	ht.showDistribution(initial_map);
+	Hash_Table<int> move_copy = std::move(ht);
+	CPPUNIT_ASSERT_EQUAL(static_cast<std::size_t>(128), move_copy.size());
+	map move_map;
+	move_copy.showDistribution(move_map);
+	CPPUNIT_ASSERT(move_map == initial_map);
+	//------------------------------------------------------------------------------//
+	//another interesting way to check the work of the move constructor
+	Hash_Table<int> ht2 = Hash_Table<int>(2000);  //move constructor will work in this case
+	CPPUNIT_ASSERT_EQUAL(static_cast<std::size_t>(2000), ht2.size());
+	for(int i = 0; i < 2000; ++i)
+	{
+		CPPUNIT_ASSERT(!ht2[i]);
+	}
+	//I want check the case when operator [] throw an exception
+	// in case when we require an index over the bound of avaliable
+	try{
+		if(ht2[3000])
+			std::cout << "a very big fail on the " << __LINE__ << std::endl;
+	}catch(const std::out_of_range&){}
+}
+
+void hashTableTest::testMoveAssignmentOperator()
+{
+	Hash_Table<int> ht = Hash_Table<int>(512); //  [just for fun] My Hash_Table is clever so I can write strings like this one
+	_FILL_HASH_TABLE_RANDOM_NUMBERS_IN_RANGE(ht, 5000);
+	map map_ht;
+	ht.showDistribution(map_ht);
+	Hash_Table<int> ht1;
+	_FILL_HASH_TABLE_RANDOM_NUMBERS_IN_RANGE(ht1, 10000);
+
+	ht1 = std::move(ht);
+	CPPUNIT_ASSERT_EQUAL(static_cast<std::size_t>(512), ht1.size());
+	map current_map_ht1;
+	ht1.showDistribution(current_map_ht1);
+	CPPUNIT_ASSERT(current_map_ht1 == map_ht);
 }
 
 void hashTableTest::setUp()

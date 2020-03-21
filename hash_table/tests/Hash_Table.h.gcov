@@ -1,8 +1,8 @@
         -:    0:Source:Hash_Table.h
         -:    0:Graph:Hash_Table.gcno
         -:    0:Data:Hash_Table.gcda
-        -:    0:Runs:5
-        -:    0:Programs:5
+        -:    0:Runs:1
+        -:    0:Programs:1
         -:    1://
         -:    2:// Created by user on 28/02/2020.
         -:    3://
@@ -44,110 +44,112 @@
         -:   39:	explicit Hash_Table(std::size_t size = _HASH_TABLE_SIZE);
         -:   40:	~Hash_Table();
         -:   41:	Hash_Table(const Hash_Table &hash_table);
-        -:   42:	Hash_Table &operator=(const Hash_Table &ht);
-        -:   43:	const std::size_t &size() const noexcept;
-        -:   44:	static void *operator new(std::size_t size);
-        -:   45:	static void operator delete(void *ptr) noexcept;
-        -:   46:	void showDistribution(info &map) const;
-        -:   47:	friend std::ofstream &operator<<<>(std::ofstream &out, const Hash_Table<Key> &ht);
-        -:   48:private :
-        -:   49:
-        -:   50:	class Node
-        -:   51:	{
-        -:   52:		Node *left_ = nullptr;
-        -:   53:		Node *right_ = nullptr;
-        -:   54:		Key value;
-        -:   55:	public:
-        -:   56:		explicit Node(const Key &t);
-        -:   57:		Node() = delete;
-        -:   58:		const Node *get_right() const noexcept;
-        -:   59:		void set_right(Node *right) noexcept;
-        -:   60:		void set_left(Node *left) noexcept;
-        -:   61:		const Node *get_left() const noexcept;
-        -:   62:		Node *get_left() noexcept;
-        -:   63:		Node *get_right() noexcept;
-        -:   64:		const Key &get_value() const noexcept;
-        -:   65:		Node* ptr_to_last_in_bucket(const Node* ptr_from)const noexcept;
-        -:   66:	};
-        -:   67:
-        -:   68:	Node *deep_copy_bucket(const Node *bucket_ptr) const;
-        -:   69:	void destroy_bucket(Node *bucket_ptr) const noexcept;
-        -:   70:
-        -:   71:	class NewHandlerHolder
-        -:   72:	{
-        -:   73:	public:
-    72752:   74:		explicit NewHandlerHolder(std::new_handler ptr)
-    72752:   75:			: currentHandler(ptr)
-    72752:   76:		{}
-        -:   77:		NewHandlerHolder(const NewHandlerHolder &holder) = delete;
-        -:   78:		NewHandlerHolder &operator=(const NewHandlerHolder &holder) = delete;
-    72752:   79:		~NewHandlerHolder()
-    72752:   80:		{ std::set_new_handler(currentHandler); }
-        -:   81:	private :
-        -:   82:		std::new_handler currentHandler = nullptr;
-        -:   83:	};
-        -:   84:
-        -:   85:
-        -:   86:public:
-        -:   87:	class Iterator
-        -:   88:	{
-        -:   89:		using value_type = Key;
-        -:   90:		using pointer = Key *;
-        -:   91:		using reference = Key &;
-        -:   92:		using difference_type = std::size_t;
-        -:   93:		using iterator_category = std::bidirectional_iterator_tag;
-        -:   94:
-        -:   95:	public :
-        -:   96:		Iterator() = default;
-        -:   97:		Iterator(std::size_t n, std::size_t max, Node *ptr, Node **hash_p);
-        -:   98:		Iterator(const Iterator &it) = default;
-        -:   99:		Iterator &operator=(const Iterator &it) = default;
-        -:  100:
-        -:  101:		Key &operator*(); // this operator will cause runtime_error in case when we are about to dereference nullptr
-        -:  102:		const Key &operator*() const;
-        -:  103:
-        -:  104:		Node *operator->();
-        -:  105:		const Node *operator->() const;
-        -:  106:
-        -:  107:		Iterator &operator++() noexcept;
-        -:  108:		const Iterator operator++(int);
-        -:  109:
-        -:  110:		Iterator &operator--() noexcept;
-        -:  111:		const Iterator operator--(int);
-        -:  112:
-        -:  113:		bool operator==(const Iterator &it) const noexcept;
-        -:  114:		bool operator!=(const Iterator &it) const noexcept;
-        -:  115:
-        -:  116:
-        -:  117:	private :
-        -:  118:		std::size_t nbucket_ = 0; // this variable will maintain the current number of bucket
-        -:  119:		std::size_t max_buckets = _HASH_TABLE_SIZE;
-        -:  120:		Node *ptr_ =
-        -:  121:			nullptr;          // this is the main part of this iterator due to I'm going to go through the left and right pointer
-        -:  122:		Node **hash_t = nullptr;     // this pointer will maintain the main array of hash_table
-        -:  123:	};
-        -:  124:
-        -:  125:	Iterator findEl(const Key &key, std::size_t &bucket);
-        -:  126:	Iterator begin();
-        -:  127:
-        -:  128:	Iterator end();
+        -:   42:	Hash_Table(Hash_Table&& rhs) noexcept;
+        -:   43:	Hash_Table& operator=(Hash_Table&& rhs) noexcept;
+        -:   44:	Hash_Table& operator=(const Hash_Table &ht);
+        -:   45:	const std::size_t &size() const noexcept;
+        -:   46:	static void *operator new(std::size_t size);
+        -:   47:	static void operator delete(void *ptr) noexcept;
+        -:   48:	void showDistribution(info &map) const;
+        -:   49:	friend std::ofstream &operator<<<>(std::ofstream &out, const Hash_Table<Key> &ht);
+        -:   50:private :
+        -:   51:
+        -:   52:	class Node
+        -:   53:	{
+        -:   54:		Node *left_ = nullptr;
+        -:   55:		Node *right_ = nullptr;
+        -:   56:		Key value;
+        -:   57:	public:
+        -:   58:		explicit Node(const Key &t);
+        -:   59:		Node() = delete;
+        -:   60:		const Node *get_right() const noexcept;
+        -:   61:		void set_right(Node *right) noexcept;
+        -:   62:		void set_left(Node *left) noexcept;
+        -:   63:		const Node *get_left() const noexcept;
+        -:   64:		Node *get_left() noexcept;
+        -:   65:		Node *get_right() noexcept;
+        -:   66:		const Key &get_value() const noexcept;
+        -:   67:		Node *ptr_to_last_in_bucket(const Node *ptr_from) const noexcept;
+        -:   68:	};
+        -:   69:
+        -:   70:	Node *deep_copy_bucket(const Node *bucket_ptr) const;
+        -:   71:	void destroy_bucket(Node *bucket_ptr) const noexcept;
+        -:   72:
+        -:   73:	class NewHandlerHolder
+        -:   74:	{
+        -:   75:	public:
+    34679:   76:		explicit NewHandlerHolder(std::new_handler ptr)
+    34679:   77:			: currentHandler(ptr)
+    34679:   78:		{}
+        -:   79:		NewHandlerHolder(const NewHandlerHolder &holder) = delete;
+        -:   80:		NewHandlerHolder &operator=(const NewHandlerHolder &holder) = delete;
+    34679:   81:		~NewHandlerHolder()
+    34679:   82:		{ std::set_new_handler(currentHandler); }
+        -:   83:	private :
+        -:   84:		std::new_handler currentHandler = nullptr;
+        -:   85:	};
+        -:   86:
+        -:   87:
+        -:   88:public:
+        -:   89:	class Iterator
+        -:   90:	{
+        -:   91:		using value_type = Key;
+        -:   92:		using pointer = Key *;
+        -:   93:		using reference = Key &;
+        -:   94:		using difference_type = std::size_t;
+        -:   95:		using iterator_category = std::bidirectional_iterator_tag;
+        -:   96:
+        -:   97:	public :
+        -:   98:		Iterator() = default;
+        -:   99:		Iterator(std::size_t n, std::size_t max, Node *ptr, Node **hash_p);
+        -:  100:		Iterator(const Iterator &it) = default;
+        -:  101:		Iterator &operator=(const Iterator &it) = default;
+        -:  102:
+        -:  103:		Key &operator*(); // this operator will cause runtime_error in case when we are about to dereference nullptr
+        -:  104:		const Key &operator*() const;
+        -:  105:
+        -:  106:		Node *operator->();
+        -:  107:		const Node *operator->() const;
+        -:  108:
+        -:  109:		Iterator &operator++() noexcept;
+        -:  110:		const Iterator operator++(int);
+        -:  111:
+        -:  112:		Iterator &operator--() noexcept;
+        -:  113:		const Iterator operator--(int);
+        -:  114:
+        -:  115:		bool operator==(const Iterator &it) const noexcept;
+        -:  116:		bool operator!=(const Iterator &it) const noexcept;
+        -:  117:
+        -:  118:
+        -:  119:	private :
+        -:  120:		std::size_t nbucket_ = 0; // this variable will maintain the current number of bucket
+        -:  121:		std::size_t max_buckets = _HASH_TABLE_SIZE;
+        -:  122:		Node *ptr_ =
+        -:  123:			nullptr;          // this is the main part of this iterator due to I'm going to go through the left and right pointer
+        -:  124:		Node **hash_t = nullptr;     // this pointer will maintain the main array of hash_table
+        -:  125:	};
+        -:  126:
+        -:  127:	Iterator findEl(const Key &key, std::size_t &bucket);
+        -:  128:	Iterator begin();
         -:  129:
-        -:  130:	bool insert(const Key &key);
-        -:  131:	bool erase(const Key &key);
-        -:  132:	/*These operators will throw an exception of type std::out_of_range in case when
-        -:  133:	 * i is out of bound array hash_t*/
-        -:  134:	Node *operator[](const std::size_t i);
-        -:  135:	const Node *operator[](const std::size_t i) const;
-        -:  136:
-        -:  137:private :
+        -:  130:	Iterator end();
+        -:  131:
+        -:  132:	bool insert(const Key &key);
+        -:  133:	bool erase(const Key &key);
+        -:  134:	/*These operators will throw an exception of type std::out_of_range in case when
+        -:  135:	 * i is out of bound array hash_t*/
+        -:  136:	Node *operator[](const std::size_t i);
+        -:  137:	const Node *operator[](const std::size_t i) const;
         -:  138:
-        -:  139:	Node **hash_t = nullptr; // It's a pointer to the array of pointers (aka hash_table structure)
-        -:  140:	std::size_t n_buckets = _HASH_TABLE_SIZE;
-        -:  141:	static int number_allocations;
-        -:  142:	static Node **alloc_ptr;       // It's a pointer which I'm going to use for hash_t in the case of dynamic alloc
-        -:  143:	static void mem_handler();
-        -:  144:	std::size_t hash_func(const Key &key);
-        -:  145:
-        -:  146:};
+        -:  139:private :
+        -:  140:
+        -:  141:	Node **hash_t = nullptr; // It's a pointer to the array of pointers (aka hash_table structure)
+        -:  142:	std::size_t n_buckets = _HASH_TABLE_SIZE;
+        -:  143:	static int number_allocations;
+        -:  144:	static Node **alloc_ptr;       // It's a pointer which I'm going to use for hash_t in the case of dynamic alloc
+        -:  145:	static void mem_handler();
+        -:  146:	std::size_t hash_func(const Key &key);
         -:  147:
-        -:  148:#endif //HASH_TABLE_HASH_TABLE_H
+        -:  148:};
+        -:  149:
+        -:  150:#endif //HASH_TABLE_HASH_TABLE_H

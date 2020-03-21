@@ -15,6 +15,15 @@
 #include "../Hash_Table.h"
 #include <map>
 
+
+#define _FILL_HASH_TABLE_RANDOM_NUMBERS_IN_RANGE(ht, n)       \
+do{                                                            \
+	for(int i = 0; i < n; ++i){                                 \
+		ht.insert(rand());                                       \
+	}                                                             \
+}while(0)
+
+
 #define DUMP_IN_FILE(str, stream, ht)                                  \
 do{                                                                     \
     std::ofstream stream(str);                                           \
@@ -44,6 +53,8 @@ class hashTableTest: public CppUnit::TestFixture
 	static void testOperatorDumpingIntoFile();
 	static void testCopyConstructorAssignmentOperator();
 	static void testEasyCoverage();
+	static void testMoveConstructor();
+	static void testMoveAssignmentOperator();
 private :
 CPPUNIT_TEST_SUITE(hashTableTest);
 		CPPUNIT_TEST(testInsertElement);
@@ -54,6 +65,8 @@ CPPUNIT_TEST_SUITE(hashTableTest);
 		CPPUNIT_TEST(testEasyCoverage);
 		CPPUNIT_TEST(testRedefineAllocOpers);
 		CPPUNIT_TEST(testConstructorThrow);
+		CPPUNIT_TEST(testMoveConstructor);
+		CPPUNIT_TEST(testMoveAssignmentOperator);
 	CPPUNIT_TEST_SUITE_END();
 
 

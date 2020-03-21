@@ -39,7 +39,9 @@ public :
 	explicit Hash_Table(std::size_t size = _HASH_TABLE_SIZE);
 	~Hash_Table();
 	Hash_Table(const Hash_Table &hash_table);
-	Hash_Table &operator=(const Hash_Table &ht);
+	Hash_Table(Hash_Table&& rhs) noexcept;
+	Hash_Table& operator=(Hash_Table&& rhs) noexcept;
+	Hash_Table& operator=(const Hash_Table &ht);
 	const std::size_t &size() const noexcept;
 	static void *operator new(std::size_t size);
 	static void operator delete(void *ptr) noexcept;

@@ -7,6 +7,7 @@ SOURCE = Hash_Table.h
 TEST_SRC = ./tests/hashTableTest.h
 OBJS = main.o ./tests/hashTableTest.o Hash_Table.o
 
+
 HashTable : $(OBJS)
 	$(CXX) $^ -o $@ $(LDLIBS) $(LDFLAGS) $(GCOVFLAGS)
 	
@@ -21,3 +22,11 @@ TEST_SRC += $(SOURCE)
 .PHONY: clean
 clean :
 	rm *.o HashTable *.gcno *.gcda *.h.gcov *.cpp.gcov *.gcov
+
+.PHONY: valgirnd_check
+valgrind_check :
+	valgrind --leak-check=full --log-file=val.log  ./HashTable
+
+.PHONY: tests_results
+test_results :
+	./HashTable > ./tests/test_results

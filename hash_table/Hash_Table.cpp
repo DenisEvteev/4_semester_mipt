@@ -25,6 +25,27 @@ template<class T>
 const std::size_t &Hash_Table<T>::size() const noexcept
 { return n_buckets; }
 
+
+template<class T>
+Hash_Table<T>::Hash_Table(Hash_Table<T>&& rhs) noexcept : hash_t(rhs.hash_t), n_buckets(rhs.n_buckets)
+{
+	rhs.hash_t = nullptr;
+	rhs.n_buckets = 0;
+}
+
+template<class T>
+Hash_Table<T>& Hash_Table<T>::operator=(Hash_Table<T>&& rhs)noexcept {
+	for (std::size_t i = 0; i < n_buckets; ++i)
+		destroy_bucket(hash_t[i]);
+	delete[] hash_t;
+	hash_t = rhs.hash_t;
+	n_buckets = rhs.n_buckets;
+
+	rhs.hash_t = nullptr;
+	rhs.n_buckets = 0;
+	return (*this);
+}
+
 template<class Key>
 Hash_Table<Key>::Hash_Table(std::size_t size)
 {
@@ -156,6 +177,8 @@ typename Hash_Table<T>::Node *Hash_Table<T>::deep_copy_bucket(const Hash_Table<T
 template<class Key>
 Hash_Table<Key>::~Hash_Table<Key>()
 {
+	if(!hash_t)
+		return;
 	for (std::size_t i = 0; i < n_buckets; ++i)
 		destroy_bucket(hash_t[i]);
 	delete[] hash_t;
@@ -466,7 +489,7 @@ std::ofstream &operator<<(std::ofstream &out, const Hash_Table<T> &ht)
 	for (std::size_t i = 0; i < ht.size(); ++i) {
 		auto it = map.equal_range(i);
 		out << "[ " << i << " ] === ";
-		if (it.first == map.end() || it.second == map.end()) {
+		if (it.first == map.end() || it.first == it.second) {
 			out << "null\n";
 			continue;
 		}
