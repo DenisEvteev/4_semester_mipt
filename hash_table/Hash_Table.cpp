@@ -4,7 +4,6 @@
 
 #include "Hash_Table.h"
 
-
 template<class Key>
 typename Hash_Table<Key>::Node **Hash_Table<Key>::alloc_ptr = nullptr;
 
@@ -35,14 +34,16 @@ Hash_Table<T>::Hash_Table(Hash_Table<T>&& rhs) noexcept : hash_t(rhs.hash_t), n_
 
 template<class T>
 Hash_Table<T>& Hash_Table<T>::operator=(Hash_Table<T>&& rhs)noexcept {
-	for (std::size_t i = 0; i < n_buckets; ++i)
-		destroy_bucket(hash_t[i]);
-	delete[] hash_t;
-	hash_t = rhs.hash_t;
-	n_buckets = rhs.n_buckets;
+	if(this != &rhs){
+		for (std::size_t i = 0; i < n_buckets; ++i)
+			destroy_bucket(hash_t[i]);
+		delete[] hash_t;
+		hash_t = rhs.hash_t;
+		n_buckets = rhs.n_buckets;
 
-	rhs.hash_t = nullptr;
-	rhs.n_buckets = 0;
+		rhs.hash_t = nullptr;
+		rhs.n_buckets = 0;
+	}
 	return (*this);
 }
 
