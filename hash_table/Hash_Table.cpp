@@ -95,12 +95,23 @@ template<class T>
 Hash_Table<T>::Hash_Table(const Hash_Table<T> &ht)
 	: n_buckets(ht.n_buckets)
 {
-	NewHandlerHolder handler(std::set_new_handler(mem_handler));
-	/*A very important moment to allocate memory for one more bucket ([n_bucket + 1])
-	 * to have a valid memory to create an Iterator to the element after the last one*/
+
 	hash_t = new Node *[(n_buckets + 1)]{nullptr};
-	for (std::size_t i = 0; i < n_buckets; ++i)
-		hash_t[i] = deep_copy_bucket(ht[i]);
+
+	std::size_t i =0;
+	try{
+		for ( ; i < n_buckets; ++i)
+			hash_t[i] = deep_copy_bucket(ht[i]);
+	}catch(...){
+		for(std::size_t j = 0; j < i; ++i){
+			destroy_bucket(hash_t[j]);
+		}
+		delete hash_t;
+		hash_t = nullptr;
+		n_buckets = 0;
+		throw;
+	}
+
 
 }
 
@@ -112,12 +123,23 @@ Hash_Table<T> &Hash_Table<T>::operator=(const Hash_Table<T> &ht)
 			destroy_bucket(hash_t[i]);
 		delete[] hash_t;
 
-		NewHandlerHolder handler(std::set_new_handler(mem_handler));
 		n_buckets = ht.n_buckets;
 		/*The same words as in assignment operator which is represented above*/
 		hash_t = new Node *[(n_buckets + 1)]{nullptr};
-		for (std::size_t i = 0; i < n_buckets; ++i)
-			hash_t[i] = deep_copy_bucket(ht[i]);
+		std::size_t i = 0;
+		try{
+			for ( ; i < n_buckets; ++i)
+				hash_t[i] = deep_copy_bucket(ht[i]);
+
+		}catch(...){
+			for(std::size_t j = 0; j < i; ++i){
+				destroy_bucket(hash_t[j]);
+			}
+			delete hash_t;
+			hash_t = nullptr;
+			n_buckets = 0;
+			throw;
+		}
 
 	}
 	return (*this);
@@ -135,42 +157,30 @@ void Hash_Table<T>::destroy_bucket(Hash_Table<T>::Node *bucket_ptr) const noexce
 }
 
 template<class T>
-typename Hash_Table<T>::Node *Hash_Table<T>::deep_copy_bucket(const Hash_Table<T>::Node *bucket_ptr) const
+typename Hash_Table<T>::Node *Hash_Table<T>::deep_copy_bucket(const Hash_Table<T>::Node *bucket_ptr) const // this method can throw bad_alloc
 {
 	if (!bucket_ptr)
 		return nullptr;
 	else {
-		NewHandlerHolder handler(std::set_new_handler(mem_handler));
+		Node *new_ptr = new Node(bucket_ptr->get_value()); // this method can throw an exception
 
-#ifdef C_PLUS_PLUS_IS_ALLOWED
-		std::stack<Node*> nodes;
-		while(bucket_ptr){
-			nodes.push(new Node(bucket_ptr->get_value()));
-			bucket_ptr = bucket_ptr->get_right();
-		}
-		Node* current_ptr = nodes.top();
-		nodes.pop();
-		while(nodes.size()) {
-			current_ptr->set_left(nodes.top());
-			(nodes.top())->set_right(current_ptr);
-			current_ptr = nodes.top();
-			nodes.pop();
-		}
-		return current_ptr;
-#else
-		Node *new_ptr = new Node(bucket_ptr->get_value());
-		while (bucket_ptr->get_right()) {
-			new_ptr->set_right(new Node((bucket_ptr->get_right())->get_value()));
-			(new_ptr->get_right())->set_left(new_ptr);
-			bucket_ptr = bucket_ptr->get_right();
-			new_ptr = new_ptr->get_right();
+		try{
+			while (bucket_ptr->get_right()) {
+				new_ptr->set_right(new Node((bucket_ptr->get_right())->get_value()));
+				(new_ptr->get_right())->set_left(new_ptr);
+				bucket_ptr = bucket_ptr->get_right();
+				new_ptr = new_ptr->get_right();
+			}
+		}catch(...){
+			destroy_bucket(new_ptr);
+			throw;
 		}
 
 		while (new_ptr->get_left())
 			new_ptr = new_ptr->get_left();
 
 		return new_ptr;
-#endif
+
 	}
 
 }
