@@ -43,8 +43,6 @@ public :
 	Hash_Table& operator=(Hash_Table&& rhs) noexcept;
 	Hash_Table& operator=(const Hash_Table &ht);
 	const std::size_t &size() const noexcept;
-	static void *operator new(std::size_t size);
-	static void operator delete(void *ptr) noexcept;
 	void showDistribution(info &map) const;
 	friend std::ofstream &operator<<<>(std::ofstream &out, const Hash_Table<Key> &ht);
 private :
@@ -140,8 +138,6 @@ private :
 
 	Node **hash_t = nullptr; // It's a pointer to the array of pointers (aka hash_table structure)
 	std::size_t n_buckets = _HASH_TABLE_SIZE;
-	static int number_allocations;
-	static Node **alloc_ptr;       // It's a pointer which I'm going to use for hash_t in the case of dynamic alloc
 	static void mem_handler();
 	std::size_t hash_func(const Key &key);
 
