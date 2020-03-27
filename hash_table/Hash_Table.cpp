@@ -218,8 +218,7 @@ bool Hash_Table<T>::insert(U &&el)
 
 	NewHandlerHolder handler(std::set_new_handler(mem_handler));
 	if (!hash_t[hash_value]) {
-		hash_t[hash_value] =
-			new Node(std::forward<U>(el)); // fucking Denis You are wrong !!! we call exactly not we want
+		hash_t[hash_value] = new Node(std::forward<U>(el));
 		return true;
 	}
 
