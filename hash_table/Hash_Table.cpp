@@ -4,7 +4,6 @@
 
 #include "Hash_Table.h"
 
-
 template<class T>
 const std::size_t &Hash_Table<T>::size() const noexcept
 { return n_buckets; }
@@ -150,7 +149,7 @@ typename Hash_Table<T>::Node *Hash_Table<T>::deep_copy_bucket(const Hash_Table<T
 			bucket_ptr = bucket_ptr->get_right();
 		}
 	}catch(...){
-		while(nodes.size()){
+		while(!nodes.empty()){
 			Node* deleted = nodes.top();
 			nodes.pop();
 			delete deleted;
@@ -160,7 +159,7 @@ typename Hash_Table<T>::Node *Hash_Table<T>::deep_copy_bucket(const Hash_Table<T
 
 	Node* current_ptr = nodes.top();
 	nodes.pop();
-	while(nodes.size()) {
+	while(!nodes.empty()) {
 		current_ptr->set_left(nodes.top());
 		(nodes.top())->set_right(current_ptr);
 		current_ptr = nodes.top();
@@ -209,20 +208,22 @@ void Hash_Table<Key>::mem_handler()
 }
 
 template<class T>
-bool Hash_Table<T>::insert(const T &t)
+template<class U>
+bool Hash_Table<T>::insert(U &&el)
 {
 	std::size_t hash_value = 0;
-	Iterator it = findEl(t, hash_value);
+	Iterator it = findEl(el, hash_value);
 	if (it != end())
 		return false;
 
 	NewHandlerHolder handler(std::set_new_handler(mem_handler));
 	if (!hash_t[hash_value]) {
-		hash_t[hash_value] = new Node(t);
+		hash_t[hash_value] =
+			new Node(std::forward<U>(el)); // fucking Denis You are wrong !!! we call exactly not we want
 		return true;
 	}
 
-	Node *new_node = new Node(t);
+	Node *new_node = new Node(std::forward<U>(el));
 	new_node->set_right(hash_t[hash_value]);
 	(hash_t[hash_value])->set_left(new_node);
 	hash_t[hash_value] = new_node;
@@ -247,11 +248,17 @@ typename Hash_Table<T>::Iterator Hash_Table<T>::findEl(const T &el, std::size_t 
 			return it;
 
 	}
+	return end();
 }
 
 template<class Key>
 Hash_Table<Key>::Node::Node(const Key &t)
 	: value(t)
+{}
+
+template<class T>
+Hash_Table<T>::Node::Node(T &&t) noexcept
+	: value(std::move(t))
 {}
 
 template<class T>
@@ -514,8 +521,14 @@ std::ofstream &operator<<(std::ofstream &out, const Hash_Table<T> &ht)
 }
 
 template
-class Hash_Table<int>; //explicit declaration of instantiation of Hash_Table class for int type
-template std::ofstream &operator<<(std::ofstream &out,
-								   const Hash_Table<int> &ht); //explicit declaration of operator << for int template argument
+class Hash_Table<int>;
+template std::ofstream &operator<<(std::ofstream &out, const Hash_Table<int> &ht);
+template
+class Hash_Table<Yucky>;
+
+template bool Hash_Table<int>::insert<int>(int &&el);
+template bool Hash_Table<int>::insert<int &>(int &el);
+template bool Hash_Table<Yucky>::insert<Yucky>(Yucky &&el);
+template bool Hash_Table<Yucky>::insert<Yucky &>(Yucky &el);
 
 

@@ -18,9 +18,9 @@
 
 #define _FILL_HASH_TABLE_RANDOM_NUMBERS_IN_RANGE(ht, n)       \
 do{                                                            \
-	for(int i = 0; i < n; ++i){                                 \
-		ht.insert(rand());                                       \
-	}                                                             \
+    for(int i = 0; i < n; ++i){                                 \
+        ht.insert(std::rand());                                       \
+    }                                                             \
 }while(0)
 
 
@@ -43,10 +43,12 @@ enum
 
 class hashTableTest: public CppUnit::TestFixture
 {
+
+	/*I should write some tests for checking copy algorithm via std::stack container*/
 	using map = std::multimap<std::size_t, int>;
 
 	static void testConstructorThrow();
-	static void testRedefineAllocOpers();
+	static void testZeroSize();
 	static void testInsertElement();
 	static void testInsertBigAmountAndErase();
 	static void testIncrementDecrementOperators();
@@ -55,18 +57,22 @@ class hashTableTest: public CppUnit::TestFixture
 	static void testEasyCoverage();
 	static void testMoveConstructor();
 	static void testMoveAssignmentOperator();
+	static void testExceptionCaseAssignmentOperator();
+	static void testExceptionCaseCopyConstructor();
 private :
 CPPUNIT_TEST_SUITE(hashTableTest);
+		CPPUNIT_TEST_EXCEPTION(testZeroSize, std::invalid_argument);
 		CPPUNIT_TEST(testInsertElement);
 		CPPUNIT_TEST(testInsertBigAmountAndErase);
 		CPPUNIT_TEST(testCopyConstructorAssignmentOperator);
 		CPPUNIT_TEST(testIncrementDecrementOperators);
 		CPPUNIT_TEST(testOperatorDumpingIntoFile);
 		CPPUNIT_TEST(testEasyCoverage);
-		CPPUNIT_TEST(testRedefineAllocOpers);
-		CPPUNIT_TEST(testConstructorThrow);
+		CPPUNIT_TEST_EXCEPTION(testConstructorThrow, std::bad_alloc);
 		CPPUNIT_TEST(testMoveConstructor);
 		CPPUNIT_TEST(testMoveAssignmentOperator);
+		CPPUNIT_TEST(testExceptionCaseAssignmentOperator);
+		CPPUNIT_TEST_EXCEPTION(testExceptionCaseCopyConstructor, std::invalid_argument);
 	CPPUNIT_TEST_SUITE_END();
 
 

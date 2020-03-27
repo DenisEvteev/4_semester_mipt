@@ -11,6 +11,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION(hashTableTest);
 
 int main(int argc, char **argv)
 {
+
 	if (argc > 2) {
 		std::cerr << "Too big number of arguments" << std::endl;
 		exit(EXIT_FAILURE);
@@ -19,7 +20,7 @@ int main(int argc, char **argv)
 
 	int seed{0};
 	(argc == 2) ? seed = atoi(argv[1]) : seed = SEED;
-	srand(seed);
+	std::srand(seed);
 
 	CppUnit::TestFactoryRegistry &registry = CppUnit::TestFactoryRegistry::getRegistry();
 	CppUnit::Test *suite = registry.makeTest();

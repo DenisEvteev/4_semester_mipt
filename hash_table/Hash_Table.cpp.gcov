@@ -1,0 +1,534 @@
+        -:    0:Source:Hash_Table.cpp
+        -:    0:Graph:Hash_Table.gcno
+        -:    0:Data:Hash_Table.gcda
+        -:    0:Runs:1
+        -:    0:Programs:1
+        -:    1://
+        -:    2:// Created by user on 28/02/2020.
+        -:    3://
+        -:    4:
+        -:    5:#include "Hash_Table.h"
+        -:    6:
+        -:    7:template<class T>
+     3946:    8:const std::size_t &Hash_Table<T>::size() const noexcept
+     3946:    9:{ return n_buckets; }
+        -:   10:
+        -:   11:
+        -:   12:template<class T>
+        1:   13:Hash_Table<T>::Hash_Table(Hash_Table<T>&& rhs) noexcept : hash_t(rhs.hash_t), n_buckets(rhs.n_buckets)
+        -:   14:{
+        1:   15:	rhs.hash_t = nullptr;
+        1:   16:	rhs.n_buckets = 0;
+        1:   17:}
+        -:   18:
+        -:   19:template<class T>
+        3:   20:Hash_Table<T>& Hash_Table<T>::operator=(Hash_Table<T>&& rhs)noexcept {
+        3:   21:	if (this == &rhs) {
+        1:   22:		return *this;
+        -:   23:	}
+     3932:   24:	for (std::size_t i = 0; i < n_buckets; ++i)
+     3930:   25:		destroy_bucket(hash_t[i]);
+        -:   26:
+        2:   27:	delete[] hash_t;
+        2:   28:	hash_t = rhs.hash_t;
+        2:   29:	n_buckets = rhs.n_buckets;
+        -:   30:
+        2:   31:	rhs.n_buckets = 0;
+        2:   32:	rhs.hash_t = nullptr;
+        2:   33:	return (*this);
+        -:   34:
+        -:   35:}
+        -:   36:
+        -:   37:template<class Key>
+       18:   38:Hash_Table<Key>::Hash_Table(std::size_t size)
+        -:   39:{
+       18:   40:	if (size == 0)
+        1:   41:		throw std::invalid_argument("Cannot create Hash_Table with zero number of buckets");
+        -:   42:
+       34:   43:	NewHandlerHolder handler(std::set_new_handler(mem_handler));
+        -:   44:	/*[+1] means reserving additional memory for Iterator to the end of this container*/
+       17:   45:	hash_t = new Node *[(size + 1)]{nullptr};
+       16:   46:	n_buckets = size;
+       16:   47:}
+        -:   48:
+        -:   49:template<class T>
+     2130:   50:typename Hash_Table<T>::Node *Hash_Table<T>::operator[](const std::size_t i)
+        -:   51:{
+     2130:   52:	return const_cast<Node *>((static_cast<const Hash_Table<T> &>(*this)).operator[](i));
+        -:   53:}
+        -:   54:
+        -:   55:template<class T>
+     3440:   56:const typename Hash_Table<T>::Node *Hash_Table<T>::operator[](const std::size_t i) const
+        -:   57:{
+     3440:   58:	if (i >= n_buckets)
+        1:   59:		throw std::out_of_range("You aren't allowed to access this part of memory");
+     3439:   60:	return hash_t[i];
+        -:   61:}
+        -:   62:
+        -:   63:/*Copy constructor gives a basic guarantee of security in case of throwing exception
+        -:   64: * in the case when method deep_copy_bucket generates an exception (or maybe another way of such a trouble)
+        -:   65: * I set n_buckets to zero and hash_t to nullptr
+        -:   66: * we can easily perform then operator= for this object and fill it with new set of elements*/
+        -:   67:template<class T>
+        2:   68:Hash_Table<T>::Hash_Table(const Hash_Table<T> &ht)
+        2:   69:	: n_buckets(ht.n_buckets)
+        -:   70:{
+        2:   71:	std::size_t i = 0;
+        4:   72:	NewHandlerHolder handler(std::set_new_handler(mem_handler));
+        -:   73:	try {
+        2:   74:		hash_t = new Node *[(n_buckets + 1)]{nullptr};
+     1182:   75:		for (; i < n_buckets; ++i)
+      591:   76:			hash_t[i] = deep_copy_bucket(ht[i]);
+        -:   77:	}
+        2:   78:	catch (...) {
+       91:   79:		for (std::size_t ip_ = 0; ip_ < i; ++ip_) {
+       90:   80:			destroy_bucket(hash_t[ip_]);
+        -:   81:		}
+        1:   82:		delete[] hash_t;
+        1:   83:		hash_t = nullptr;
+        1:   84:		n_buckets = 0;
+        1:   85:		throw;
+        -:   86:	}
+        1:   87:}
+        -:   88:
+        -:   89:/*This method represents the strict guarantee of security about exceptions
+        -:   90: * If the latter will happen then the object for which we have called this operator
+        -:   91: * will remain in the state it was the step before I mean we will follow two basic rules about guarantee
+        -:   92: * working with exceptions ---- 1) no memory leaks
+        -:   93: *                              2) no corrupted data in any fields of the object*/
+        -:   94:template<class T>
+        5:   95:Hash_Table<T> &Hash_Table<T>::operator=(const Hash_Table<T> &ht)
+        -:   96:{
+        5:   97:	if (&ht == this)
+        2:   98:		return (*this);
+        -:   99:
+        6:  100:	NewHandlerHolder handler(std::set_new_handler(mem_handler));
+        3:  101:	Node **try_copy = new Node *[(ht.n_buckets + 1)]{nullptr};
+        3:  102:	std::size_t i = 0;
+        -:  103:	try {
+     1439:  104:		for (; i < ht.n_buckets; ++i)
+      719:  105:			try_copy[i] = deep_copy_bucket(ht[i]);
+        -:  106:
+        -:  107:	}
+        2:  108:	catch (...) {
+       91:  109:		for (std::size_t ip_ = 0; ip_ < i; ++ip_) {
+       90:  110:			destroy_bucket(try_copy[ip_]);
+        -:  111:		}
+        1:  112:		delete[] try_copy;
+        1:  113:		throw;
+        -:  114:	}
+        -:  115:
+      630:  116:	for (std::size_t i = 0; i < n_buckets; ++i)
+      628:  117:		destroy_bucket(hash_t[i]);
+        2:  118:	delete[] hash_t;
+        -:  119:
+        2:  120:	n_buckets = ht.n_buckets;
+        2:  121:	hash_t = try_copy;
+        2:  122:	return (*this);
+        -:  123:}
+        -:  124:
+        -:  125:template<class T>
+ 38033718:  126:void Hash_Table<T>::destroy_bucket(Hash_Table<T>::Node *bucket_ptr) const noexcept
+        -:  127:{
+ 38033718:  128:	Node *save_node = nullptr;
+ 38166160:  129:	while (bucket_ptr) {
+    66221:  130:		save_node = bucket_ptr->get_right();
+    66221:  131:		delete bucket_ptr;
+    66221:  132:		bucket_ptr = save_node;
+        -:  133:	}
+ 38033718:  134:}
+        -:  135:
+        -:  136:/*deep_copy_bucket can throw several types of exceptions :
+        -:  137: * std::bad_alloc() and some other user specified from constructor of object T*/
+        -:  138:template<class T>
+     1310:  139:typename Hash_Table<T>::Node *Hash_Table<T>::deep_copy_bucket(const Hash_Table<T>::Node *bucket_ptr) const
+        -:  140:{
+     1310:  141:	if (!bucket_ptr)
+      145:  142:		return nullptr;
+        -:  143:
+        -:  144:#ifdef C_PLUS_PLUS_IS_ALLOWED
+        -:  145:	std::stack<Node*> nodes;
+        -:  146:	try{
+        -:  147:		while(bucket_ptr){
+        -:  148:			nodes.push(new Node(bucket_ptr->get_value()));
+        -:  149:			bucket_ptr = bucket_ptr->get_right();
+        -:  150:		}
+        -:  151:	}catch(...){
+        -:  152:		while(!nodes.empty()){
+        -:  153:			Node* deleted = nodes.top();
+        -:  154:			nodes.pop();
+        -:  155:			delete deleted;
+        -:  156:		}
+        -:  157:		throw;
+        -:  158:	}
+        -:  159:
+        -:  160:	Node* current_ptr = nodes.top();
+        -:  161:	nodes.pop();
+        -:  162:	while(!nodes.empty()) {
+        -:  163:		current_ptr->set_left(nodes.top());
+        -:  164:		(nodes.top())->set_right(current_ptr);
+        -:  165:		current_ptr = nodes.top();
+        -:  166:		nodes.pop();
+        -:  167:	}
+        -:  168:	return current_ptr;
+        -:  169:#else
+     1165:  170:	Node *new_ptr = new Node(bucket_ptr->get_value());
+        -:  171:	try {
+    20949:  172:		while (bucket_ptr->get_right()) {
+     9896:  173:			new_ptr->set_right(new Node((bucket_ptr->get_right())->get_value()));
+     9892:  174:			(new_ptr->get_right())->set_left(new_ptr);
+     9892:  175:			bucket_ptr = bucket_ptr->get_right();
+     9892:  176:			new_ptr = new_ptr->get_right();
+        -:  177:		}
+        -:  178:	}
+        4:  179:	catch (...) {
+        2:  180:		destroy_bucket(new_ptr);
+        2:  181:		throw;
+        -:  182:	}
+     9876:  183:	while (new_ptr->get_left())
+     9876:  184:		new_ptr = new_ptr->get_left();
+        -:  185:
+     1163:  186:	return new_ptr;
+        -:  187:#endif
+        -:  188:}
+        -:  189:
+        -:  190:
+        -:  191:
+        -:  192:template<class Key>
+       18:  193:Hash_Table<Key>::~Hash_Table<Key>()
+        -:  194:{
+       18:  195:	if(!hash_t)
+        6:  196:		return;
+ 38028993:  197:	for (std::size_t i = 0; i < n_buckets; ++i)
+ 38028978:  198:		destroy_bucket(hash_t[i]);
+       15:  199:	delete[] hash_t;
+       33:  200:}
+        -:  201:
+        -:  202:template<class Key>
+        1:  203:void Hash_Table<Key>::mem_handler()
+        -:  204:{
+        1:  205:	std::cerr << "Operator new failed. There aren't any vacant memory."
+        -:  206:				 "It has happened in redefine operator new for template Hash_Table class" << std::endl;
+        1:  207:	throw std::bad_alloc();
+        -:  208:}
+        -:  209:
+        -:  210:template<class T>
+        -:  211:template<class U>
+    55694:  212:bool Hash_Table<T>::insert(U&& el)
+        -:  213:{
+    55694:  214:	std::size_t hash_value = 0;
+    55694:  215:	Iterator it = findEl(el, hash_value);
+    55694:  216:	if (it != end())
+        1:  217:		return false;
+        -:  218:
+   111386:  219:	NewHandlerHolder handler(std::set_new_handler(mem_handler));
+    55693:  220:	if (!hash_t[hash_value]) {
+     6110:  221:		hash_t[hash_value] = new Node(std::forward<U>(el)); // fucking Denis You are wrong !!! we call exactly not we want
+     6110:  222:		return true;
+        -:  223:	}
+        -:  224:
+    49583:  225:	Node *new_node = new Node(std::forward<U>(el));
+    49583:  226:	new_node->set_right(hash_t[hash_value]);
+    49583:  227:	(hash_t[hash_value])->set_left(new_node);
+    49583:  228:	hash_t[hash_value] = new_node;
+    49583:  229:	return true;
+        -:  230:
+        -:  231:}
+        -:  232:
+        -:  233:template<class T>
+    57238:  234:typename Hash_Table<T>::Iterator Hash_Table<T>::findEl(const T &el, std::size_t &bucket)
+        -:  235:{
+    57238:  236:	if (n_buckets == 0) // this case can appear when copy constructor rethrow an exception -- a very bad case
+    #####:  237:		throw std::runtime_error("you shouldn't find elements in empty Hash_Table");
+        -:  238:
+    57238:  239:	bucket = hash_func(el);
+    57238:  240:	if (!hash_t[bucket])
+     6242:  241:		return end();
+        -:  242:
+    50996:  243:	Iterator it(bucket, n_buckets, hash_t[bucket], hash_t);
+    50996:  244:	Iterator it_end(bucket + 1, n_buckets, hash_t[bucket + 1], hash_t);
+  1468752:  245:	for (; it != it_end; ++it) {
+   709906:  246:		if (*it == el)
+     1028:  247:			return it;
+        -:  248:
+        -:  249:	}
+    49968:  250:	return end();
+        -:  251:}
+        -:  252:
+        -:  253:template<class Key>
+    11571:  254:Hash_Table<Key>::Node::Node(const Key &t)
+    11571:  255:	: value(t)
+    11569:  256:{}
+        -:  257:
+        -:  258:template <class T>
+    55181:  259:Hash_Table<T>::Node::Node(T&& t) noexcept : value(std::move(t)) {}
+        -:  260:
+        -:  261:template<class T>
+    59476:  262:void Hash_Table<T>::Node::set_left(Hash_Table<T>::Node *left) noexcept
+        -:  263:{
+    59476:  264:	left_ = left;
+    59476:  265:}
+        -:  266:
+        -:  267:template<class T>
+    59858:  268:void Hash_Table<T>::Node::set_right(Hash_Table<T>::Node *right) noexcept
+        -:  269:{
+    59858:  270:	right_ = right;
+    59858:  271:}
+        -:  272:
+        -:  273:template<class T>
+   253972:  274:Hash_Table<T>::Iterator::Iterator(size_t n, size_t max, Node *ptr, Node **hash_p)
+   253972:  275:	: nbucket_(n), max_buckets(max), ptr_(ptr), hash_t(hash_p)
+        -:  276:{
+   253972:  277:	if (n > max)
+    #####:  278:		throw std::runtime_error("negative value for the number of bucket");
+   253972:  279:}
+        -:  280:
+        -:  281:template<class T>
+   770896:  282:T &Hash_Table<T>::Iterator::operator*()
+        -:  283:{
+   770896:  284:	return const_cast<T &>(static_cast<const Iterator &>(*this).operator*());
+        -:  285:}
+        -:  286:
+        -:  287:template<class T>
+   770896:  288:const T &Hash_Table<T>::Iterator::operator*() const
+        -:  289:{
+   770896:  290:	if (!ptr_)
+      652:  291:		throw std::runtime_error("dereferencing nullptr  -- SIGSEGV");
+   770244:  292:	return ptr_->get_value();
+        -:  293:}
+        -:  294:
+        -:  295:template<class T>
+     3333:  296:typename Hash_Table<T>::Node *Hash_Table<T>::Iterator::operator->()
+        -:  297:{
+     3333:  298:	return const_cast<typename Hash_Table<T>::Node *>(static_cast<const Iterator &>(*this).operator->());
+        -:  299:}
+        -:  300:
+        -:  301:template<class T>
+     3333:  302:const typename Hash_Table<T>::Node *Hash_Table<T>::Iterator::operator->() const
+        -:  303:{
+     3333:  304:	if (!ptr_)
+    #####:  305:		throw std::runtime_error("ptr_ is nullptr [const]");
+     3333:  306:	return ptr_;
+        -:  307:}
+        -:  308:
+        -:  309:template<class T>
+   768191:  310:typename Hash_Table<T>::Iterator &Hash_Table<T>::Iterator::operator++() noexcept
+        -:  311:{
+   768191:  312:	if (ptr_ && ptr_->get_right()) {
+   709359:  313:		ptr_ = ptr_->get_right();
+   709359:  314:		return (*this);
+        -:  315:	}
+        -:  316:
+    58832:  317:	if (nbucket_ <= max_buckets - 1) {
+    58831:  318:		++nbucket_;
+    58831:  319:		ptr_ = hash_t[nbucket_];
+        -:  320:	}
+    58832:  321:	return (*this);
+        -:  322:
+        -:  323:}
+        -:  324:
+        -:  325:template<class T>
+     5001:  326:const typename Hash_Table<T>::Iterator Hash_Table<T>::Iterator::operator++(int)
+        -:  327:{
+     5001:  328:	Node *save_current_ptr = ptr_;
+        -:  329:
+     5001:  330:	if (ptr_ && ptr_->get_right()) {
+     4488:  331:		ptr_ = ptr_->get_right();
+     4488:  332:		return Iterator(nbucket_, max_buckets, save_current_ptr, hash_t);
+        -:  333:	}
+        -:  334:
+      513:  335:	if (nbucket_ <= max_buckets - 1) {
+      512:  336:		size_t save_nbucket_ = nbucket_;
+      512:  337:		++nbucket_;
+      512:  338:		ptr_ = hash_t[nbucket_];
+      512:  339:		return Iterator(save_nbucket_, max_buckets, save_current_ptr, hash_t);
+        -:  340:	}
+        1:  341:	return Iterator(nbucket_, max_buckets, save_current_ptr, hash_t);
+        -:  342:
+        -:  343:}
+        -:  344:
+        -:  345:template<class T>
+     5001:  346:typename Hash_Table<T>::Iterator &Hash_Table<T>::Iterator::operator--() noexcept
+        -:  347:{
+     5001:  348:	if (ptr_ && ptr_->get_left()) {
+     4488:  349:		ptr_ = ptr_->get_left();
+     4488:  350:		return (*this);
+        -:  351:	}
+        -:  352:
+      513:  353:	if (nbucket_ > 0) {
+      512:  354:		--nbucket_;
+      512:  355:		ptr_ = hash_t[nbucket_]->ptr_to_last_in_bucket(hash_t[nbucket_]);
+        -:  356:	}
+      513:  357:	return (*this);
+        -:  358:}
+        -:  359:
+        -:  360:template<class T>
+     1024:  361:typename Hash_Table<T>::Node *Hash_Table<T>::Node::ptr_to_last_in_bucket(const Node *ptr_from) const noexcept
+        -:  362:{
+     1024:  363:	if (!ptr_from)
+    #####:  364:		return nullptr;
+     8976:  365:	while (ptr_from->get_right()) {
+     8976:  366:		ptr_from = ptr_from->get_right();
+        -:  367:	}
+     1024:  368:	return const_cast<Node *>(ptr_from);
+        -:  369:
+        -:  370:}
+        -:  371:
+        -:  372:template<class T>
+     5001:  373:const typename Hash_Table<T>::Iterator Hash_Table<T>::Iterator::operator--(int)
+        -:  374:{
+     5001:  375:	Node *save_current_node = ptr_;
+     5001:  376:	if (ptr_ && ptr_->get_left()) {
+     4488:  377:		ptr_ = ptr_->get_left();
+     4488:  378:		return Iterator(nbucket_, max_buckets, save_current_node, hash_t);
+        -:  379:	}
+      513:  380:	if (nbucket_ > 0) {
+      512:  381:		size_t save_nbucket_ = nbucket_;
+      512:  382:		--nbucket_;
+      512:  383:		ptr_ = hash_t[nbucket_]->ptr_to_last_in_bucket(hash_t[nbucket_]);
+      512:  384:		return Iterator(save_nbucket_, max_buckets, save_current_node, hash_t);
+        -:  385:	}
+        1:  386:	return Iterator(nbucket_, max_buckets, ptr_, hash_t);
+        -:  387:}
+        -:  388:
+        -:  389:template<class T>
+   900436:  390:bool Hash_Table<T>::Iterator::operator==(const Hash_Table<T>::Iterator &it) const noexcept
+        -:  391:{
+   900436:  392:	return (ptr_ == it.ptr_ && nbucket_ == it.nbucket_ && hash_t == it.hash_t && max_buckets == it.max_buckets);
+        -:  393:}
+        -:  394:
+        -:  395:template<class T>
+   894398:  396:bool Hash_Table<T>::Iterator::operator!=(const Hash_Table<T>::Iterator &it) const noexcept
+        -:  397:{
+   894398:  398:	return !(*this == it);
+        -:  399:}
+        -:  400:
+        -:  401:template<class T>
+    10008:  402:typename Hash_Table<T>::Iterator Hash_Table<T>::begin()
+        -:  403:{
+    10008:  404:	return Iterator(0, n_buckets, hash_t[0], hash_t);
+        -:  405:}
+        -:  406:
+        -:  407:template<class T>
+   112942:  408:typename Hash_Table<T>::Iterator Hash_Table<T>::end()
+        -:  409:{
+   112942:  410:	return Iterator(n_buckets, n_buckets, hash_t[n_buckets], hash_t);
+        -:  411:}
+        -:  412:
+        -:  413:template<class T>
+    57238:  414:std::size_t Hash_Table<T>::hash_func(const T &key)
+        -:  415:{
+        -:  416:	static std::hash<T> hash_f;
+    57238:  417:	return hash_f(key) % n_buckets;
+        -:  418:}
+        -:  419:
+        -:  420:template<class T>
+  1624271:  421:const typename Hash_Table<T>::Node *Hash_Table<T>::Node::get_right() const noexcept
+        -:  422:{
+  1624271:  423:	return right_;
+        -:  424:}
+        -:  425:
+        -:  426:template<class T>
+    41299:  427:const typename Hash_Table<T>::Node *Hash_Table<T>::Node::get_left() const noexcept
+        -:  428:{
+    41299:  429:	return left_;
+        -:  430:}
+        -:  431:
+        -:  432:template<class T>
+    41299:  433:typename Hash_Table<T>::Node *Hash_Table<T>::Node::get_left() noexcept
+        -:  434:{
+    41299:  435:	return const_cast<Node *>(static_cast<const Node *>(this)->get_left());
+        -:  436:}
+        -:  437:template<class T>
+  1574452:  438:typename Hash_Table<T>::Node *Hash_Table<T>::Node::get_right() noexcept
+        -:  439:{
+  1574452:  440:	return const_cast<Node *>(static_cast<const Node *>(this)->get_right());
+        -:  441:}
+        -:  442:
+        -:  443:template<class T>
+   781303:  444:const T &Hash_Table<T>::Node::get_value() const noexcept
+        -:  445:{
+   781303:  446:	return value;
+        -:  447:}
+        -:  448:
+        -:  449:template<class T>
+      515:  450:bool Hash_Table<T>::erase(const T &t)
+        -:  451:{
+      515:  452:	std::size_t bucket = 0;
+      515:  453:	Iterator it = findEl(t, bucket);
+      515:  454:	if (it == end())
+        2:  455:		return false;
+        -:  456:
+      513:  457:	if (it->get_right())
+        1:  458:		(it->get_right())->set_left(it->get_left());
+        -:  459:
+      513:  460:	if (it->get_left())
+      383:  461:		(it->get_left())->set_right(it->get_right());
+        -:  462:
+      513:  463:	int flag_erase_the_first_el = 0;
+      513:  464:	Node *save_ptr = it->get_right();
+      513:  465:	if (!it->get_left())
+      130:  466:		flag_erase_the_first_el = 1;
+        -:  467:
+      513:  468:	delete it.operator->();
+      513:  469:	if (flag_erase_the_first_el)
+      130:  470:		hash_t[bucket] = save_ptr;
+      513:  471:	return true;
+        -:  472:}
+        -:  473:
+        -:  474:template<class T>
+       19:  475:void Hash_Table<T>::showDistribution(info &map) const
+        -:  476:{
+       19:  477:	if (!map.empty())
+        5:  478:		map.clear();
+     9533:  479:	for (std::size_t i = 0; i < n_buckets; ++i) {
+     9514:  480:		Iterator it(i, n_buckets, hash_t[i], hash_t);
+     9514:  481:		Iterator it_next(i + 1, n_buckets, hash_t[i + 1], hash_t);
+   128138:  482:		while (it != it_next) {
+        -:  483:			try {
+    59963:  484:				T value = *it; // it's a very bad string of code [but this time It would be like this]
+    59312:  485:				map.insert(std::make_pair(i, value));
+        -:  486:			}
+     1302:  487:			catch (const std::runtime_error &er) {
+      651:  488:				break;
+        -:  489:			}
+    59312:  490:			++it;
+        -:  491:		}
+        -:  492:	}
+       19:  493:}
+        -:  494:
+        -:  495:template<class T>
+        2:  496:std::ofstream &operator<<(std::ofstream &out, const Hash_Table<T> &ht)
+        -:  497:{
+        4:  498:	std::multimap<std::size_t, T> map;
+        2:  499:	ht.showDistribution(map);
+     3932:  500:	for (std::size_t i = 0; i < ht.size(); ++i) {
+     3930:  501:		auto it = map.equal_range(i);
+     3930:  502:		out << "[ " << i << " ] === ";
+     4035:  503:		if (it.first == map.end() || it.first == it.second) {
+      105:  504:			out << "null\n";
+      105:  505:			continue;
+        -:  506:		}
+    23875:  507:		for (auto ip = it.first; ip != it.second;) {
+    20050:  508:			out << (*ip).second;
+    20050:  509:			++ip;
+    20050:  510:			if (ip != it.second)
+    16225:  511:				out << ", ";
+        -:  512:			else {
+     3825:  513:				out << ";   { " << map.count(i) << " }\n";
+        -:  514:			}
+        -:  515:		}
+        -:  516:	}
+        4:  517:	return out;
+        -:  518:}
+        -:  519:
+        -:  520:template class Hash_Table<int>;
+        -:  521:template std::ofstream& operator<<(std::ofstream& out, const Hash_Table<int>& ht);
+        -:  522:template class Hash_Table<Yucky>;
+        -:  523:
+        -:  524:template bool Hash_Table<int>::insert<int>(int&& el);
+        -:  525:template bool Hash_Table<int>::insert<int&>(int& el);
+        -:  526:template bool Hash_Table<Yucky>::insert<Yucky>(Yucky&& el);
+        3:  527:template bool Hash_Table<Yucky>::insert<Yucky&>(Yucky& el);
+        -:  528:
+        -:  529:

@@ -7,10 +7,6 @@
 
 #include <new>
 #include <iostream>
-#include <cstring>
-#include <cassert>
-#include <iterator>
-#include <functional>
 #include <stack>
 #include <map>
 #include <fstream>
@@ -20,13 +16,49 @@
 
 enum SIZE
 {
-	_HASH_TABLE_SIZE = 128
+	_HASH_TABLE_SIZE = 128,
+	_CONDITION_TO_GENERATE_EXCEPTION_ = 3802
+};
+
+/*I implement a struct which will throw an exception at the special case
+ * So I will be able to check the state of objects Hash_Table when deep_copy_bucket can generate
+ * an exception in more complicated case */
+struct Yucky
+{
+	int a_;
+	explicit Yucky(int a)
+		: a_(a)
+	{};
+	Yucky(Yucky &&rhs) noexcept
+		: a_(rhs.a_)
+	{ rhs.a_ = 0; }
+	Yucky(const Yucky &rhs)
+		: a_(rhs.a_)
+	{
+		//generate an exception at the special case
+		if (a_ == _CONDITION_TO_GENERATE_EXCEPTION_)
+			throw std::invalid_argument("condition to generate exception in copy ctor");
+	};
+	bool operator==(const Yucky &rhs) const noexcept
+	{
+		return (a_ == rhs.a_);
+	}
 };
 
 template<class T>
 class Hash_Table;
 template<class T>
 std::ofstream &operator<<(std::ofstream &out, const Hash_Table<T> &ht);
+
+template<>
+struct std::hash<Yucky>
+{
+	std::size_t operator()(const Yucky &rhs) const noexcept
+	{
+		std::hash<int> hash_f;
+		return hash_f(rhs.a_);
+	}
+};
 
 template<class Key>
 class Hash_Table
@@ -54,6 +86,7 @@ private :
 		Key value;
 	public:
 		explicit Node(const Key &t);
+		explicit Node(Key &&t) noexcept;
 		Node() = delete;
 		const Node *get_right() const noexcept;
 		void set_right(Node *right) noexcept;
@@ -127,7 +160,8 @@ public:
 
 	Iterator end();
 
-	bool insert(const Key &key);
+	template<class U>
+	bool insert(U &&key);
 	bool erase(const Key &key);
 	/*These operators will throw an exception of type std::out_of_range in case when
 	 * i is out of bound array hash_t*/
