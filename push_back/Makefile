@@ -7,10 +7,10 @@ CXXFLAGS = -Wall -g -ftest-coverage $(GCOV)
 VAL_FLAGS = --leak-check=full --log-file=./tests/val_log
 LDLIBS = -lcppunit
 
-SRC = ./tests/testVecrot.h
+SRC = ./tests/testVector.h
 
 GOAL = main
-OBJS = tests/testVecrot.o main.o
+OBJS = tests/testVector.o main.o
 
 
 .PHONY: all

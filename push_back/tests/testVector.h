@@ -2,10 +2,10 @@
 // Created by user on 23/03/2020.
 //
 
-#ifndef TESTVECROT_H
-#define TESTVECROT_H
+#ifndef TESTVECTOR_H
+#define TESTVECTOR_H
 
-#include "../vecrot.h"
+#include "../vector.h"
 #include "../TrackingAllocator.h"
 #include <cppunit/TestFixture.h>
 #include <cppunit/TestSuite.h>
@@ -32,7 +32,7 @@ struct Yucky
 	int a_ = _SIZE;
 };
 
-class testVecrot: public CppUnit::TestFixture
+class testVector: public CppUnit::TestFixture
 {
 public :
 
@@ -40,7 +40,7 @@ public :
 	void testPushRvalue();
 
 
-CPPUNIT_TEST_SUITE(testVecrot);
+CPPUNIT_TEST_SUITE(testVector);
 		CPPUNIT_TEST(testPushLvalue);
 		CPPUNIT_TEST(testPushRvalue);
 	CPPUNIT_TEST_SUITE_END();
@@ -52,4 +52,4 @@ public:
 };
 
 
-#endif //TESTVECROT_H
+#endif //TESTVECTOR_H

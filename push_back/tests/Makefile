@@ -2,9 +2,9 @@
 #This Makefile makes object file for testVecrot
 
 ALLOCATOR = ../TrackingAllocator.h
-SRC       = ../vecrot.h
+SRC       = ../vector.h
 
-testVecrot.o : $(ALLOCATOR) $(SRC)
+testVector.o : $(ALLOCATOR) $(SRC)
 
 .PHONY: clean
 clean :

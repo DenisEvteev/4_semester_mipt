@@ -2,10 +2,10 @@
 // Created by user on 23/03/2020.
 //
 
-#include "tests/testVecrot.h"
+#include "tests/testVector.h"
 
 
-CPPUNIT_TEST_SUITE_REGISTRATION(testVecrot);
+CPPUNIT_TEST_SUITE_REGISTRATION(testVector);
 
 int main()
 {

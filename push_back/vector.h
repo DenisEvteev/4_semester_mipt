@@ -2,34 +2,39 @@
 // Created by user on 23/03/2020.
 //
 
-#ifndef VECROT_H
-#define VECROT_H
+#ifndef VECTOR_H
+#define VECTOR_H
 
 #include <memory>
 #include <exception>
 #include <iostream>
 
+
+namespace my_push_back
+{
+
+
 enum SIZE
 {
-	_DEFAULT_SIZE_ = 10
+	DEFAULT_SIZE = 10
 };
 
 /*I've tried to implement a strict guarantee of security relative the exception
- * in my class vecrot*/
+ * in my class vector*/
 
 template<class T,
 	class Alloc = std::allocator<T>>
-class vecrot
+class vector
 {
 public:
 	using traits = std::allocator_traits<Alloc>;
 	using ptr = typename traits::pointer;
 	/*default constructor allocate just a raw memory for default
 	 * numbers of objects*/
-	vecrot();
-	~vecrot();
-	vecrot(const vecrot &t) = delete;
-	vecrot &operator=(const vecrot &t) = delete;
+	vector();
+	~vector();
+	vector(const vector &t) = delete;
+	vector &operator=(const vector &t) = delete;
 	T &operator[](const std::size_t i) noexcept;
 	const T &operator[](const std::size_t i) const noexcept;
 	std::size_t size() const noexcept;
@@ -43,33 +48,32 @@ public:
 	 * [2] : Not to change any data to yucky condition [dangling pointers, for example] */
 	void push_back(const T &t);              // the strict guarantee relative generating exception in this method
 
-	/*Notes : implementation of this method should be very smart due to the case
-	 * when the user wants to put an object from the previous array (e.g. some returned from operator[]) */
-	void push_back(T &&t);                  // analogous
+	/*In the case when the user would like to insert the element from this->arr_ (example using operator[])
+	 * then we consider such a situation as he has shoot himself in the foot*/
+	void push_back(T &&t);                  // analogous about safety in case of exception
 private :
 	T *arr_ = nullptr;
-	std::size_t cap_ = _DEFAULT_SIZE_;
+	std::size_t cap_ = DEFAULT_SIZE;
 	std::size_t sz_ = 0;
 	Alloc alloc;
-	bool check_copy_construction(ptr arr, const T &t);
 };
 
 template<class T, class Alloc>
-std::size_t vecrot<T, Alloc>::size() const noexcept
+std::size_t vector<T, Alloc>::size() const noexcept
 { return sz_; }
 
 template<class T, class Alloc>
-std::size_t vecrot<T, Alloc>::capasity() const noexcept
+std::size_t vector<T, Alloc>::capasity() const noexcept
 { return cap_; }
 
 template<class T, class Alloc>
-vecrot<T, Alloc>::vecrot()
+vector<T, Alloc>::vector()
 {
 	arr_ = traits::allocate(alloc, cap_);
 }
 
 template<class T, class Alloc>
-vecrot<T, Alloc>::~vecrot()
+vector<T, Alloc>::~vector()
 {
 	for (std::size_t i = 0; i < sz_; ++i) {
 		traits::destroy(alloc, arr_ + i);
@@ -78,7 +82,7 @@ vecrot<T, Alloc>::~vecrot()
 }
 
 template<class T, class Alloc>
-void vecrot<T, Alloc>::push_back(const T &t)
+void vector<T, Alloc>::push_back(const T &t)
 {
 	if (sz_ < cap_) {
 		traits::construct(alloc, (arr_ + sz_), t); //copy constructor
@@ -120,14 +124,9 @@ void vecrot<T, Alloc>::push_back(const T &t)
  * element from the old version of field arr_ into the new memory
  * but In this case I should prevent throwing an exception in case when we forced to use copy constructor*/
 template<class T, class Alloc>
-void vecrot<T, Alloc>::push_back(T &&t)
+void vector<T, Alloc>::push_back(T &&t)
 {
 	if (sz_ < cap_) {
-		/*This check is for prevention move the element from the exact this object
-		 * It can appear if an user want to perform push_back to the element which is situated in this->arr_
-		 * array of this vecrot (e.g. this can take place when use push_back for the element std::move(ht[ip]) */
-		if (check_copy_construction(arr_, t))
-			return;
 		traits::construct(alloc, (arr_ + sz_), std::move(t));
 		++sz_;
 		return;
@@ -135,11 +134,10 @@ void vecrot<T, Alloc>::push_back(T &&t)
 	ptr new_arr_ = traits::allocate(alloc, cap_ * 2);
 	std::size_t save_cap = cap_;
 	cap_ <<= 1;
-	//analogous check as in the branch above
-	if (!check_copy_construction(new_arr_, t)) {
-		traits::construct(alloc, (new_arr_ + sz_), std::move(t));
-		++sz_;
-	}
+
+	traits::construct(alloc, (new_arr_ + sz_), std::move(t));
+	++sz_;
+
 	for (std::size_t i = 0; i < (sz_ - 1); ++i) {
 		traits::construct(alloc, new_arr_ + i, std::move(arr_[i]));
 	}
@@ -148,27 +146,16 @@ void vecrot<T, Alloc>::push_back(T &&t)
 }
 
 template<class T, class Alloc>
-bool vecrot<T, Alloc>::check_copy_construction(ptr arr, const T &t)
-{
-	for (std::size_t i = 0; i < sz_; ++i) {
-		if (&arr_[i] == &t) {
-			traits::construct(alloc, (arr + sz_), t);    //simple copy constructor
-			++sz_;
-			return true;
-		}
-	}
-	return false;
-}
-
-template<class T, class Alloc>
-T &vecrot<T, Alloc>::operator[](const std::size_t i) noexcept
+T &vector<T, Alloc>::operator[](const std::size_t i) noexcept
 {
 	//assume this operator[] can do something else beside returning just a ref
-	return const_cast<T &>(static_cast<const vecrot<T, Alloc> &>(*this)[i]);
+	return const_cast<T &>(static_cast<const vector<T, Alloc> &>(*this)[i]);
 }
 template<class T, class Alloc>
-const T &vecrot<T, Alloc>::operator[](const std::size_t i) const noexcept
+const T &vector<T, Alloc>::operator[](const std::size_t i) const noexcept
 {
 	return arr_[i];
 }
-#endif //VECROT_H
+
+}
+#endif //VECTOR_H
