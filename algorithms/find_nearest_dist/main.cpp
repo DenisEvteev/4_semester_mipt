@@ -2,7 +2,7 @@
 // Created by user on 03/04/2020.
 //
 
-//#define USE_CPPUNIT_TEST the_way_to_SP
+#define USE_CPPUNIT_TEST the_way_to_SP
 
 #ifdef USE_CPPUNIT_TEST
 #include "tests/testSolution.h"
@@ -27,6 +27,7 @@ int main()
 	dot::Solution sl1;
 	std::cin >> sl1;
 	std::cout << sl1.find_nearest_dist();
+
 #endif
 
 	return 0;

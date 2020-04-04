@@ -21,7 +21,9 @@ namespace dot
 enum
 {
 	BASIC_CASE = 3,
-	MAXIMUM_ELEMENTS = 8
+	MAXIMUM_ELEMENTS = 8,
+	UP_BOUND_ELEMENTS = 100000,
+	DOWN_BOUND_ELEMENTS = 2
 };
 
 class Solution
@@ -31,8 +33,7 @@ public:
 	Solution(const Solution &rhs) = delete;
 	Solution &operator=(const Solution &rhs) = delete;
 	friend std::istream &operator>>(std::istream &in, Solution &rhs);
-	friend std::ostream &operator<<(std::ostream &out, const Solution &rhs);
-	int find_nearest_dist();
+	long find_nearest_dist();
 	struct Point
 	{
 		int x_ = 0;
@@ -51,13 +52,13 @@ public:
 
 private :
 	/*Left and right are respond to the left and to the right index in dots vector to conquer*/
-	int find_min(size_t start, size_t end);
-	int merge_minimal(int middle_x_c, int cur_min, size_t start, size_t mid);
+	long find_min(size_t start, size_t end);
+	long merge_minimal(int middle_x_c, long cur_min, size_t start, size_t mid);
 
-	size_t n_ = 0;
+	int n_ = 0;
 	std::vector<Point> dots;
-	int square_distance(const Point &p1, const Point &p2) const;
-	int basic_case(size_t start, size_t end);
+	long square_distance(const Point &p1, const Point &p2) const noexcept;
+	long basic_case(size_t start, size_t end);
 
 };
 
