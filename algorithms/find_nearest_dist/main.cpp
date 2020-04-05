@@ -2,7 +2,7 @@
 // Created by user on 03/04/2020.
 //
 
-#define USE_CPPUNIT_TEST the_way_to_SP
+//#define USE_CPPUNIT_TEST the_way_to_SP
 
 #ifdef USE_CPPUNIT_TEST
 #include "tests/testSolution.h"

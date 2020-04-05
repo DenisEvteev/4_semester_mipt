@@ -5,7 +5,7 @@ if You want to run tests which are situated in tests directory You should define
 LDLIBS flag with [-lcppunit] value then this makefile will make the executable for running prepared tests
 
 
-LDLIBS = -lcppunit
+LDLIBS = #-lcppunit
 
 
 OBJS = main.o Solution.o
