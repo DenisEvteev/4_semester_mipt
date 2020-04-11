@@ -1,0 +1,5 @@
+[Strings]
+nth paddr      vaddr      len size section type  string
+―――――――――――――――――――――――――――――――――――――――――――――――――――――――
+0   0x000009f0 0x000009f0 23  24   .rodata ascii Hello, isolated world!\n
+1   0x00000a08 0x00000a08 29  30   .rodata ascii Java-like hashcode is 0x%.8X\n
