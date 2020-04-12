@@ -1,0 +1,17 @@
+type=segfault
+signal=SIGSEGV
+signum=11
+sigpid=23052
+addr=0x0
+bp_addr=0x0
+inbp=false
+baddr=0x55d49402e000
+pid=23052
+tid=23052
+stopaddr=0x0
+uid=1000
+gid=1000
+exe=/home/user/CLionProjects/4_semester_mipt/work_with_bin/task4/tricky
+cmdline=./tricky
+cwd=/home/user/CLionProjects/4_semester_mipt/work_with_bin/task4
+stopreason=2
