@@ -5,9 +5,9 @@
 
 thr::matrix<int> left, right, result;
 
-const unsigned n = 1500;
+const unsigned n = 1000;
 
-const unsigned m = 1500;
+const unsigned m = 1000;
 
 ///*This global integer is used for synchronize between all the threads
 //// * to start perform multiplication of two matrices*/
@@ -98,8 +98,11 @@ int main(int argc, char **argv)
 			error_abort("pthread_join", ret);
 	}
 	//-------------------------------------//
-	//clear resources
-	//a bit later
+	for (auto el : data) {
+		delete el->bd_;
+		delete el;
+	}
+
 
 #ifdef DEBUG
 	thr::matrix<int> manual_res = left * right;
