@@ -5,9 +5,9 @@
 
 thr::matrix<int> left, right, result;
 
-const unsigned n = 1000;
+const unsigned n = 1500;
 
-const unsigned m = 1000;
+const unsigned m = 1500;
 
 ///*This global integer is used for synchronize between all the threads
 //// * to start perform multiplication of two matrices*/
