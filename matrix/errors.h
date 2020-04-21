@@ -5,6 +5,8 @@
 #ifndef ERRORS_H
 #define ERRORS_H
 
+#define _GNU_SOURCE
+
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
@@ -12,11 +14,18 @@
 #include <cassert>
 #include <pthread.h>
 #include <vector>
+#include <unistd.h>
+#include <sched.h>
+#include <sys/syscall.h>
 
-#define error_abort(str)                                            \
+#include <sys/resource.h>
+
+
+#define error_abort(str, ret)                                            \
 do{                                                                  \
     std::cerr << str << " :\n";                                       \
     std::cerr << __LINE__ << ",  " << __PRETTY_FUNCTION__ << std::endl;\
+    std::cerr << "return value is : " << ret << std::endl;              \
     std::abort();                                                       \
 }while(0)
 

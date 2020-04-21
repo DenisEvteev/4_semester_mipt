@@ -5,8 +5,8 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
-
 #include "errors.h"
+
 
 namespace thr //this namespace means thr ~= threads
 {
@@ -20,10 +20,21 @@ struct bound
 	unsigned col_f = 0;
 };
 
+/*This type will be used for passing an argument to the pthread_create function call*/
+struct cpu_data
+{
+	struct bound *bd_;
+	int cpu_; // on which logical processor to execute a thread
+	cpu_data(struct bound *bd, int cpu)
+		: bd_(bd), cpu_(cpu)
+	{ assert(bd_ && cpu >= 0); } //just in case
+
+};
+
+#ifdef DEBUG
 template<class T>
 class matrix;
 
-#ifdef DEBUG
 template <class T> std::ostream& operator<<(std::ostream& out, const matrix<T>& m);
 #endif
 
@@ -35,9 +46,9 @@ public:
 	friend std::ostream& operator<< <T> (std::ostream& out, const matrix<T>& m);
 #endif
 
-	matrix(const matrix &m) = delete;
+	matrix(const matrix &m);
 	~matrix();
-	matrix &operator=(const matrix &m) = delete;
+	matrix &operator=(const matrix &m) noexcept;
 	matrix(matrix &&m) noexcept;
 	matrix() = default;
 	void make_arr(unsigned lines, unsigned colomns);
@@ -52,11 +63,36 @@ public:
 	matrix operator*(const matrix<T> &m) const noexcept;
 	bool operator==(const matrix<T> &m) const noexcept;
 
+	//void parallel_transpose_matrix()noexcept;
+
 private :
 	T **arr_ = nullptr;
 	unsigned lines_ = 0;
 	unsigned colomns_ = 0;
 };
+
+template<class T>
+matrix<T>::matrix(const matrix<T> &m)
+{
+	this->make_arr(m.lines_, m.colomns_); // just allocate memory new matrix
+	for (unsigned row = 0; row < lines_; ++row) {
+		/*TODO : work with the case when constructor operator=() throws an exception*/
+		for (unsigned col = 0; col < colomns_; ++col)
+			arr_[row][col] = m.arr_[row][col];
+	}
+
+}
+
+template<class T>
+matrix<T> &matrix<T>::operator=(const matrix &m) noexcept
+{
+	for (unsigned row = 0; row < lines_; ++row) {
+		/*TODO : work with the case when constructor operator=() throws an exception*/
+		for (unsigned col = 0; col < colomns_; ++col)
+			arr_[row][col] = m.arr_[row][col];
+	}
+	return *this;
+}
 
 template<class T>
 matrix<T>::matrix(matrix &&m) noexcept
@@ -146,6 +182,24 @@ std::ostream& operator<<(std::ostream& out, const matrix<T>& m)
 
 }
 #endif
+
+//how to implement this method ---- it didn't work
+
+///*Oh this method doesn't work at all how pity it doesn't look like*/
+//template <class T>
+//void matrix<T>::parallel_transpose_matrix() noexcept {
+//
+//	T save;
+//	for(unsigned row = 0; row < lines_; ++ row)
+//	{
+//		for (unsigned col = row; col < lines_; ++col) {
+//			save = arr_[row][col];
+//			arr_[row][col] = arr_[col][row];
+//			arr_[col][row] = save;
+//		}
+//
+//	}
+//}
 
 } //namespace thr
 
