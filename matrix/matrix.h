@@ -121,22 +121,22 @@ bool matrix<T>::operator==(const matrix<T> &m) const noexcept
 	return true;
 }
 
-template<class T>
-matrix<T> matrix<T>::operator*(const matrix<T> &m) const noexcept
-{
-	if (colomns_ != m.lines_)
-		throw std::invalid_argument("this multiplication cannot be performed due to the bad matrices values");
-	matrix<T> res;
-	res.make_arr(lines_, m.colomns_);
-	for (unsigned i = 0; i < lines_; ++i) {
-		for (unsigned j = 0; j < m.colomns_; ++j) {
-			res.arr_[i][j] = 0;
-			for (unsigned ip = 0; ip < colomns_; ++ip)
-				res.arr_[i][j] += arr_[i][ip] * m.arr_[ip][j];
-		}
-	}
-	return res;
-}
+//template<class T>
+//matrix<T> matrix<T>::operator*(const matrix<T> &m) const noexcept
+//{
+//	if (colomns_ != m.lines_)
+//		throw std::invalid_argument("this multiplication cannot be performed due to the bad matrices values");
+//	matrix<T> res;
+//	res.make_arr(lines_, m.colomns_);
+//	for (unsigned i = 0; i < lines_; ++i) {
+//		for (unsigned j = 0; j < m.colomns_; ++j) {
+//			res.arr_[i][j] = 0;
+//			for (unsigned ip = 0; ip < colomns_; ++ip)
+//				res.arr_[i][j] += arr_[i][ip] * m.arr_[ip][j];
+//		}
+//	}
+//	return res;
+//}
 
 template<class T>
 void matrix<T>::make_arr(unsigned int lines, unsigned int colomns)
@@ -148,7 +148,7 @@ void matrix<T>::make_arr(unsigned int lines, unsigned int colomns)
 	unsigned i = 0;
 	try {
 		for (; i < lines_; ++i) {
-			arr_[i] = new T[colomns_]{0};
+			arr_[i] = new T[colomns_];
 		}
 	}
 	catch (...) {
