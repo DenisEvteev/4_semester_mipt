@@ -12,16 +12,16 @@ namespace thr //this namespace means thr ~= threads
 {
 
 
-struct bound
+typedef struct bound
 {
 	unsigned row_s = 0;
 	unsigned row_f = 0;
 	unsigned col_s = 0;
 	unsigned col_f = 0;
-};
+} bound_t;
 
 /*This type will be used for passing an argument to the pthread_create function call*/
-struct cpu_data
+typedef struct cpu_data
 {
 	struct bound *bd_;
 	int cpu_; // on which logical processor to execute a thread
@@ -29,7 +29,7 @@ struct cpu_data
 		: bd_(bd), cpu_(cpu)
 	{ assert(bd_ && cpu >= 0); } //just in case
 
-};
+} cpu_data_t;
 
 #ifdef DEBUG
 template<class T>

@@ -16,22 +16,20 @@ static int number_threads;
 //pthread_cond_t cond = PTHREAD_COND_INITIALIZER; //predicate for this conditional variable is [number_threads == 0]
 //pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
 
-using cpu_data_t = struct thr::cpu_data;
-using bound_t = struct thr::bound;
 
 /* I add 1 to the result to find out the situations when two threads didn't
  * perform with filling a matrix with the right values */
 
 #define RAND_NUMBER ( std::rand() % 10 + 1 )
 
-bound_t *prepare_bounds_for_arg(unsigned &save_row_s, unsigned &save_col_s, unsigned sz);
+thr::bound_t *prepare_bounds_for_arg(unsigned &save_row_s, unsigned &save_col_s, unsigned sz);
 void init_input_matrices();
 void *run(void *arg);
 void *fill(void *arg);
-void fill_matrix_with_random_values(bound_t *scope, thr::matrix<int> &matrix);
-void multiplicate_part_matrices(bound_t *scope);
-void make_bounds(std::vector<cpu_data_t *> &data);
-//void transpose_multiplicate_part_matrices(bound_t * scope);
+void fill_matrix_with_random_values(thr::bound_t *scope, thr::matrix<int> &matrix);
+void multiplicate_part_matrices(thr::bound_t *scope);
+void make_bounds(std::vector<thr::cpu_data_t *> &data);
+//void transpose_multiplicate_part_matrices(thr::bound_t  * scope);
 void make_environment(int cpu);
 
 int main(int argc, char **argv)
@@ -61,7 +59,7 @@ int main(int argc, char **argv)
 	}
 
 	//-------------MAKE PREPARATION BOUNDS FOR MATRICES---------------//
-	std::vector<cpu_data_t *> data;
+	std::vector<thr::cpu_data_t *> data;
 	make_bounds(data);
 	//----------------------------------------------------------------//
 
@@ -118,7 +116,7 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-void make_bounds(std::vector<cpu_data_t *> &data)
+void make_bounds(std::vector<thr::cpu_data_t *> &data)
 {
 	int processors = static_cast<int>(sysconf(_SC_NPROCESSORS_CONF));
 	assert(processors > 0);
@@ -129,11 +127,11 @@ void make_bounds(std::vector<cpu_data_t *> &data)
 	int current_number_proc = 0;
 	for (int thr = 0; thr < number_threads; ++thr) {
 		sz = max / static_cast<unsigned>( number_threads - thr );
-		bound_t *bound;
+		thr::bound_t *bound;
 		if (thr != number_threads - 1)
 			bound = prepare_bounds_for_arg(save_row_s, save_col_s, sz);
 		else {
-			bound = new bound_t;
+			bound = new thr::bound_t;
 			bound->col_s = save_col_s;
 			bound->col_f = n - 1;
 			bound->row_s = save_row_s;
@@ -145,18 +143,18 @@ void make_bounds(std::vector<cpu_data_t *> &data)
 			current_number_proc %= processors;
 		}
 
-		auto arg = new cpu_data_t(bound, current_number_proc);
+		auto arg = new thr::cpu_data_t(bound, current_number_proc);
 		max -= sz;
 		--remainder_np;
 		data.push_back(arg);
 	}
 }
 
-bound_t *prepare_bounds_for_arg(unsigned &save_row_s, unsigned &save_col_s, unsigned sz)
+thr::bound_t *prepare_bounds_for_arg(unsigned &save_row_s, unsigned &save_col_s, unsigned sz)
 {
 	unsigned how_many_whole, remainder, available_delta;
 
-	auto arg = new bound_t;
+	auto arg = new thr::bound_t;
 	arg->col_s = save_col_s;
 	arg->row_s = save_row_s;
 	how_many_whole = sz / left.get_lines();
@@ -205,7 +203,7 @@ void init_input_matrices()
 
 void *fill(void *arg)
 {
-	auto scope = reinterpret_cast<cpu_data_t *>(arg);
+	auto scope = reinterpret_cast<thr::cpu_data_t *>(arg);
 	/*-----Make preparation to run a thread in a very good isolation-----*/
 	make_environment(scope->cpu_);
 	//-------------------------------------------------------------------//
@@ -217,7 +215,7 @@ void *fill(void *arg)
 
 void *run(void *arg)
 {
-	auto scope = reinterpret_cast<cpu_data_t *>(arg);
+	auto scope = reinterpret_cast<thr::cpu_data_t *>(arg);
 	/*-----Make preparation to run a thread in a very good isolation-----*/
 	make_environment(scope->cpu_);
 	//----------Every fairy tale comes to an end-----------------//
@@ -228,26 +226,6 @@ void *run(void *arg)
 	return nullptr;
 
 }
-
-//void transpose_multiplicate_part_matrices(bound_t * scope)
-//{
-//	assert(scope);
-//	unsigned col_up_bound, col_down_bound;
-//	int current_value = 0;
-//	for(unsigned row = scope->row_s; row <= scope->row_f; ++row)
-//	{
-//		(row == scope->row_f) ? (col_up_bound = scope->col_f) : (col_up_bound = left.get_lines() - 1);
-//		(row == scope->row_s) ? (col_down_bound = scope->col_s) : (col_down_bound = 0);
-//		for(unsigned col = col_down_bound; col <= col_up_bound; ++col){
-//			for(unsigned ip = 0; ip < n; ++ip){
-//				current_value += left.get_arr(row, ip) * right.get_arr(col, ip);
-//			}
-//			result.set_arr(row, col, current_value);
-//			current_value = 0;
-//		}
-//	}
-//
-//}
 
 void make_environment(int cpu)
 {
@@ -261,7 +239,7 @@ void make_environment(int cpu)
 
 }
 
-void fill_matrix_with_random_values(bound_t *scope, thr::matrix<int> &matrix)
+void fill_matrix_with_random_values(thr::bound_t *scope, thr::matrix<int> &matrix)
 {
 	assert(scope);
 	unsigned col_up_bound, col_down_bound;
@@ -277,7 +255,7 @@ void fill_matrix_with_random_values(bound_t *scope, thr::matrix<int> &matrix)
 
 /*It's a common algorithm of multiplication of two matrices
  * The usual way to do it but with data for input it fails with a very bad result*/
-void multiplicate_part_matrices(bound_t *scope)
+void multiplicate_part_matrices(thr::bound_t *scope)
 {
 	assert(scope);
 	unsigned col_up_bound, col_down_bound;

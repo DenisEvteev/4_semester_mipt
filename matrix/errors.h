@@ -5,8 +5,6 @@
 #ifndef ERRORS_H
 #define ERRORS_H
 
-#define _GNU_SOURCE
-
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
@@ -17,6 +15,7 @@
 #include <unistd.h>
 #include <sched.h>
 #include <sys/syscall.h>
+#include <exception>
 
 #include <sys/resource.h>
 
