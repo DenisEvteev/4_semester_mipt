@@ -15,8 +15,7 @@
 #include <unistd.h>
 #include <sched.h>
 #include <sys/syscall.h>
-#include <exception>
-
+#include <stdexcept>
 #include <sys/resource.h>
 
 
