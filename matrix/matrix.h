@@ -18,10 +18,10 @@ typedef struct bound
 	{}
 } bound_t;
 
-extern void parallel_matrix_multiplication(const bound_t *bd);
-
 namespace thr //this namespace means thr ~= threads
 {
+
+extern void parallel_matrix_multiplication(const bound_t *bd);
 
 typedef struct cpu_data
 {
@@ -50,7 +50,7 @@ public:
 
 	friend void parallel_matrix_multiplication(const bound_t *bd);
 	matrix(const matrix &m) = delete;
-	~matrix() = default;
+	~matrix();
 	matrix &operator=(const matrix &m) = delete;
 	matrix(matrix &&m) noexcept;
 	matrix() = default;
@@ -63,15 +63,16 @@ public:
 	void init_matrix(unsigned n, const T &value);
 
 private :
-	std::vector<std::vector<T>> arr_;
+	T **arr_;
 	unsigned lines_ = 0;
 	unsigned colomns_ = 0;
 };
 
 template<class T>
 matrix<T>::matrix(matrix &&m) noexcept
-	: arr_(std::move(m.arr_)), lines_(m.lines_), colomns_(m.colomns_)
+	: arr_(m.arr_), lines_(m.lines_), colomns_(m.colomns_)
 {
+	m.arr_ = nullptr;
 	m.lines_ = 0;
 	m.colomns_ = 0;
 }
@@ -100,17 +101,14 @@ matrix<T> matrix<T>::operator*(const matrix<T> &m) const
 	if (colomns_ != m.lines_)
 		throw std::invalid_argument("this multiplication cannot be performed due to the bad matrices values");
 	matrix<T> res;
-	res.lines_ = lines_;
-	res.colomns_ = m.colomns_;
-	/*This won't work with user defined types
-	 * They can not to have a value 0 for initialization*/
-	res.arr_ = std::vector<std::vector<T>>(res.lines_, std::vector<T>(res.colomns_, 0));
+	res.init_matrix(m.lines_, 0);
 	T cur_val = 0;
 	for (unsigned i = 0; i < lines_; ++i) {
 		for (unsigned j = 0; j < m.colomns_; ++j) {
 			for (unsigned ip = 0; ip < colomns_; ++ip)
 				cur_val += arr_[i][ip] * m.arr_[ip][j];
 			res.arr_[i][j] = cur_val;
+			cur_val = 0;
 		}
 
 	}
@@ -118,13 +116,34 @@ matrix<T> matrix<T>::operator*(const matrix<T> &m) const
 }
 
 template<class T>
+matrix<T>::~matrix()
+{
+	for (unsigned i = 0; i < lines_; ++i)
+		delete[] arr_[i];
+	delete[] arr_;
+}
+
+template<class T>
 void matrix<T>::init_matrix(unsigned int n, const T &value)
 {
-	if (!arr_.empty()) {
-		std::cerr << "error : the matrix isn't empty\n";
-		arr_.clear();
+	lines_ = n;
+	colomns_ = n;
+	arr_ = new T *[lines_];
+
+	int i = 0;
+	int rw = static_cast<int>(lines_);
+	try {
+		for (; i < rw; ++i) {
+			arr_[i] = new T[colomns_];
+			std::fill_n(arr_[i], colomns_, value);
+		}
 	}
-	arr_ = std::vector<std::vector<T>>(n, std::vector<T>(n, value));
+	catch (...) {
+		for (int down = (i - 1); down >= 0; --down)
+			delete[] arr_[down];
+		delete[] arr_;
+		throw;
+	}
 }
 
 
@@ -132,17 +151,16 @@ void matrix<T>::init_matrix(unsigned int n, const T &value)
 template <class T>
 std::ostream& operator<<(std::ostream& out, const matrix<T>& m)
 {
-	for(auto row : m.arr_)
-	{
-		for(auto el : row)
-			std::cout << el << " ";
-		std::cout << std::endl;
+	for(size_t i = 0; i < m.lines_; ++i){
+		for(size_t j = 0; j < m.colomns_; ++j){
+			out << m.arr_[i][j] << " ";
+		}
+		out << std::endl;
 	}
 	return out;
 
 }
 #endif
-
 
 } //namespace thr
 

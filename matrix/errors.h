@@ -17,7 +17,8 @@
 #include <sys/syscall.h>
 #include <stdexcept>
 #include <sys/resource.h>
-
+#include <cstring>
+#include <sys/user.h>
 
 #define error_abort(str, ret)                                            \
 do{                                                                  \
