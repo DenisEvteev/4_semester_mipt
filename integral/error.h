@@ -20,23 +20,25 @@
 #include <sys/user.h>
 #include <cmath>
 
-
 typedef struct bound
 {
 	double start;
 	double finish;
 	bound(double st, double f)
 		: start(st), finish(f)
-	{}
+	{
+	}
 } bound_t;
 
 typedef struct cpu_data
 {
-	bound_t *bd_;
+	bound_t* bd_;
 	unsigned cpu_; // on which logical processor to execute a thread
-	cpu_data(bound_t *bd, unsigned cpu)
+	cpu_data(bound_t* bd, unsigned cpu)
 		: bd_(bd), cpu_(cpu)
-	{ assert(bd_); } //just in case
+	{
+		assert(bd_);
+	} //just in case
 
 } cpu_data_t;
 
