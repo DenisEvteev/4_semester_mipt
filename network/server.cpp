@@ -38,83 +38,83 @@ int main(int argc, char ** argv)
 	/*Now we want to set a tcp connection -- it means that a server is going
 	 * to give a task for each client in LAN*/
 
-	int giver = socket(AF_INET, SOCK_STREAM, 0);
-	if(giver == -1)
-		PANIC(giver, "creation of SOCK_STREAM socket");
-
-	init_tcp_connection(giver);
-
-	task_t* tasks = new task_t[n_workers];
-	std::memset(tasks, 0, n_workers * sizeof(task_t));
-
-	distribute_task_per_machine(tasks, giver, n_workers);
-
-
+//	int giver = socket(AF_INET, SOCK_STREAM, 0);
+//	if(giver == -1)
+//		PANIC(giver, "creation of SOCK_STREAM socket");
+//
+//	init_tcp_connection(giver);
+//
+//	task_t* tasks = new task_t[n_workers];
+//	std::memset(tasks, 0, n_workers * sizeof(task_t));
+//
+//	distribute_task_per_machine(tasks, giver, n_workers);
 
 
 
-	delete [] tasks;
+
+
+	//delete [] tasks;
 	return 0;
 
 
 }
 
-void distribute_task_per_machine(task_t * tasks, int listen_fd, int workers){
-	assert(tasks && listen_fd >= 0 && workers > 0);
-	int ret;
-	socklen_t addrlen = sizeof(struct sockaddr_in);
-	double save_start = START;
-	double step = (FINISH - START) / static_cast<double>(workers);
+//void distribute_task_per_machine(task_t * tasks, int listen_fd, int workers){
+//	assert(tasks && listen_fd >= 0 && workers > 0);
+//	int ret;
+//	socklen_t addrlen = sizeof(struct sockaddr_in);
+//	double save_start = START;
+//	double step = (FINISH - START) / static_cast<double>(workers);
+//
+//	for(int i = 0; i < workers; ++i)
+//	{
+//		bzero(&tasks[i].peer, sizeof(struct sockaddr));
+//		tasks[i].fd = accept(listen_fd, (struct sockaddr*)(&tasks[i].peer), &addrlen);
+//		assert(addrlen == sizeof(struct sockaddr_in));
+//		if(tasks[i].fd == -1)
+//			PANIC(tasks[i].fd, "accepting incomming connection");
+//		tasks[i].bound.start  = save_start;
+//		tasks[i].bound.finish = ( i == workers - 1 ) ? FINISH : save_start + step;
+//		save_start = tasks[i].bound.finish;
+//		/*As soon as the connection has been set [ I mean accept has returned the file descriptor for us ]
+//		 * we can send data for the remote machine */
+//		ret = write(tasks[i].fd, &tasks[i].bound, sizeof(tasks[i].bound));
+//		if(ret == -1)
+//			PANIC(ret, "write data to peer client socket");
+//
+//	}
+//
+//}
 
-	for(int i = 0; i < workers; ++i)
-	{
-		bzero(&tasks[i].peer, sizeof(struct sockaddr));
-		tasks[i].fd = accept(listen_fd, (struct sockaddr*)(&tasks[i].peer), &addrlen);
-		assert(addrlen == sizeof(struct sockaddr_in));
-		if(tasks[i].fd == -1)
-			PANIC(tasks[i].fd, "accepting incomming connection");
-		tasks[i].bound.start  = save_start;
-		tasks[i].bound.finish = ( i == workers - 1 ) ? FINISH : save_start + step;
-		save_start = tasks[i].bound.finish;
-		/*As soon as the connection has been set [ I mean accept has returned the file descriptor for us ]
-		 * we can send data for the remote machine */
-		ret = write(tasks[i].fd, &tasks[i].bound, sizeof(tasks[i].bound));
-		if(ret == -1)
-			PANIC(ret, "write data to peer client socket");
-
-	}
-
-}
-
-void init_tcp_connection(int fd){
-	assert(fd >= 0);
-	struct sockaddr_in bindaddr;
-	bzero(&bindaddr, sizeof(bindaddr));
-	bindaddr.sin_family      = AF_INET;
-	bindaddr.sin_addr.s_addr = INADDR_ANY;
-	bindaddr.sin_port        = htons(PORT_NUMBER);
-
-	int ret = bind(fd, (struct sockaddr*)&bindaddr, sizeof(bindaddr));
-	if(ret != -1)
-		PANIC(ret, "binding a socket to a well-known adress");
-
-	ret = listen(fd, BACKLOG);
-	if(ret != 0)
-		PANIC(ret, "listening on the giver socket");
-
-}
+//void init_tcp_connection(int fd){
+//	assert(fd >= 0);
+//	struct sockaddr_in bindaddr;
+//	bzero(&bindaddr, sizeof(bindaddr));
+//	bindaddr.sin_family      = AF_INET;
+//	bindaddr.sin_addr.s_addr = INADDR_ANY;
+//	bindaddr.sin_port        = htons(PORT_NUMBER);
+//
+//	int ret = bind(fd, (struct sockaddr*)&bindaddr, sizeof(bindaddr));
+//	if(ret != -1)
+//		PANIC(ret, "binding a socket to a well-known adress");
+//
+//	ret = listen(fd, BACKLOG);
+//	if(ret != 0)
+//		PANIC(ret, "listening on the giver socket");
+//
+//}
 
 void produce_broadcast_to_network(int fd){
 	assert(fd >= 0);
 	const int broadcastEnabled = 1;
-	int ret = setsockopt(fd, SOL_SOCKET, SO_BROADCAST, &broadcastEnabled, sizeof(int));
+	int ret = setsockopt(fd, SOL_SOCKET, SO_BROADCAST, &broadcastEnabled, sizeof(broadcastEnabled));
 	if(ret == -1)
 		PANIC(ret, "setting SO_BROADCAST option");
 	struct sockaddr_in addr;
 	bzero(&addr, sizeof(struct sockaddr_in));
-	addr.sin_family = AF_INET;
+	addr.sin_family      = AF_INET;
 	addr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
-	addr.sin_port = 0; // this make os to choose an ephemeral port for communication via a network
+	addr.sin_port        = htons(BROADCAST_PORT); // this make os to choose an ephemeral port for communication via a network
 	/*At this moment we want to send a BROADCAST datagram via internet domain socket
 	 * for make all clients to know the address of server process
 	 * which will give a special tasks for them*/

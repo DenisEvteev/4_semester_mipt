@@ -25,10 +25,15 @@ do{                                                         \
 	std::cerr << "Return value is : [ " << ret << " ]\n";    \
 	std::cerr << message << std::endl;                        \
 	std::cerr << "errno == " << errno << std::endl;            \
-	std::cerr << "Error line is : [ " << __LINE__ << std::endl; \
+	std::cerr << "Error line is : [ " << __LINE__  << " ]\n";   \
 }while(0)                                                        \
 
-#define PORT_NUMBER 50002
+#define PORT_NUMBER    50002
+#define BROADCAST_PORT 9009
+/*this value will be used for creating a string to see the server address in
+ * client for debug purpose*/
+#define MAX_LENGTH_IPV4_ADDRESS INET_ADDRSTRLEN
+
 #define BACKLOG SOMAXCONN
 
 typedef struct bound{
