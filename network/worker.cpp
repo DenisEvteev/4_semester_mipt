@@ -5,7 +5,7 @@
 #include "inhead.h"
 
 const double move = 0.0001;
-#define SHOW_SERVER_ADDRESS
+
 void retrieve_task_from_server(bound_t& bound, int fd, const struct in_addr& addr);
 void retrieve_server_address(struct sockaddr_in& addr, int fd);
 
@@ -18,8 +18,6 @@ int main(int argc, char ** argv)
 	if(broadcast == -1)
 		PANIC(broadcast, "creation SOCK_DGRAM in client");
 	retrieve_server_address(server, broadcast);
-
-
 
 	int ret = close(broadcast);
 	if(ret != 0)
@@ -64,7 +62,7 @@ void retrieve_server_address(struct sockaddr_in& addr, int fd)
 	addrbind.sin_port        = htons(BROADCAST_PORT);
 	addrbind.sin_addr.s_addr = INADDR_ANY;
 	socklen_t addrlen = sizeof(addrbind);
-	int ret = bind(fd, (struct sockaddr *)&addrbind, addrlen);
+	int ret = bind(fd, (struct sockaddr *)&addrbind, addrlen); // this part is pivotal -- otherwise a worker won't be able to get a broadcast packet
 	if(ret == -1)
 		PANIC(ret, "binding client socket to well known address to receive a host's address");
 	/* receive a server address and preserve it for further
@@ -82,26 +80,28 @@ void retrieve_server_address(struct sockaddr_in& addr, int fd)
 #endif
 
 }
-//void retrieve_task_from_server(bound_t& bound, int fd, const struct in_addr& addr)
-//{
-//	assert(fd >= 0);
-//	struct sockaddr_in addr_tcp;
-//	bzero(&addr_tcp, sizeof(addr_tcp));
-//	addr_tcp.sin_family  = AF_INET;
-//	addr_tcp.sin_port    = htons(PORT_NUMBER);
-//	addr_tcp.sin_addr    = addr;
-//	socklen_t addrlen = sizeof(addr_tcp);
-//	int ret = connect(fd, (struct sockaddr*)(&addr_tcp), addrlen);
-//	assert(addrlen == sizeof(addr_tcp));
-//	if(ret == -1)
-//		PANIC(ret, "making a connection to a peer server");
-//
-//	ssize_t read_bytes = read(fd, &bound, sizeof(bound));
-//	if(read_bytes != sizeof(bound))
-//		PANIC(read_bytes, "read bounds from a server for making a solution for the task");
-//
-//	/*After a client calculate a value corresponding to it he will write the result back
-//	 * to the socket to make server know about the actual result*/
-//
-//}
+
+void retrieve_task_from_server(bound_t& bound, int fd, const struct in_addr& addr)
+{
+	assert(fd >= 0);
+	struct sockaddr_in addr_tcp;
+	bzero(&addr_tcp, sizeof(addr_tcp));
+	addr_tcp.sin_family  = AF_INET;
+	addr_tcp.sin_port    = htons(PORT_NUMBER);
+	addr_tcp.sin_addr    = addr;
+	socklen_t addrlen = sizeof(addr_tcp);
+	int ret = connect(fd, (struct sockaddr*)(&addr_tcp), addrlen);
+	assert(addrlen == sizeof(addr_tcp));
+	if(ret == -1)
+		PANIC(ret, "making a connection to a peer server");
+
+	std::cerr << "Go to sleep state" << std::endl;
+	ssize_t read_bytes = read(fd, &bound, sizeof(bound));
+	if(read_bytes != sizeof(bound))
+		PANIC(read_bytes, "read bounds from a server for making a solution for the task");
+
+	/*After a client calculate a value corresponding to it he will write the result back
+	 * to the socket to make server know about the actual result*/
+
+}
 
