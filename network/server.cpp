@@ -10,7 +10,7 @@ const double FINISH = 70002;
 void init_tcp_connection(int fd);
 void produce_broadcast_to_network(int fd);
 void distribute_task_per_machine(task_t* tasks, int listen_fd, int workers, int& nfds);
-double read_result_per_machine(int nfds, task_t* tasks);
+double read_result_per_machine(int nfds, task_t* tasks, int workers);
 
 /*In my realization server will take an additional argument -- the number of clients in
  * the architecture. This way will simplify dealing with connections through a LAN
@@ -43,7 +43,7 @@ int main(int argc, char ** argv)
 	distribute_task_per_machine(tasks, giver, n_workers, nfds);
 	++nfds; // we will use this value as one of arguments to select system call
 
-	double result = read_result_per_machine(nfds, tasks);
+	double result = read_result_per_machine(nfds, tasks, n_workers);
 	std::cout << result << std::endl;
 
 	delete [] tasks;
@@ -122,9 +122,9 @@ void distribute_task_per_machine(task_t * tasks, int listen_fd, int workers, int
 void init_tcp_connection(int fd){
 	assert(fd >= 0);
 	struct sockaddr_in bindaddr {
-		.sin_family      = AF_INET,
-		.sin_addr.s_addr = INADDR_ANY,
-		.sin_port        = htons(PORT_NUMBER)
+		.sin_family   = AF_INET,
+		.sin_port     = htons(PORT_NUMBER),
+		.sin_addr     = { .s_addr = INADDR_ANY}
 	};
 
 	int ret = bind(fd, (struct sockaddr*)&bindaddr, sizeof(bindaddr));
@@ -145,8 +145,8 @@ void produce_broadcast_to_network(int fd){
 		PANIC(ret, "setting SO_BROADCAST option");
 	struct sockaddr_in addr {
 		.sin_family      = AF_INET,
-		.sin_addr.s_addr = htonl(INADDR_BROADCAST),
-		.sin_port        = htons(BROADCAST_PORT)
+		.sin_port        = htons(BROADCAST_PORT),
+		.sin_addr        = { .s_addr = htonl(INADDR_BROADCAST) }
 	};
 	 // this make os to choose an ephemeral port for communication via a network
 	/*At this moment we want to send a BROADCAST datagram via internet domain socket

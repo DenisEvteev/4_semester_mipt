@@ -40,7 +40,6 @@ void solve_problem(const bound_t& bound, double& result_per_machine);
 void* run(void* arg);
 void distribute_relative_cpu(const unsigned cpu);
 
-#define LOOK_AT_THE_CPU_DATA_TYPE
 
 
 #endif //_PTHREAD_INTEGRATOR_H_

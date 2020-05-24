@@ -53,8 +53,8 @@ void retrieve_server_address(struct sockaddr_in& addr, int fd)
 	assert( fd >= 0 );
 	struct sockaddr_in addrbind = {
 		.sin_family      = AF_INET,
-		.sin_addr.s_addr = INADDR_ANY,
 		.sin_port        = htons(BROADCAST_PORT),
+		.sin_addr        = { .s_addr = INADDR_ANY}
 	};
 
 	socklen_t addrlen = sizeof(addrbind);
