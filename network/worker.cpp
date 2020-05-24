@@ -2,9 +2,9 @@
 // Created by user on 20/05/2020.
 //
 
-#include "inhead.h"
 
-const double move = 0.0001;
+#include "inhead.h"
+#include "pthread_integrator.h"
 
 void retrieve_task_from_server(bound_t& bound, int fd, const struct in_addr& addr);
 void retrieve_server_address(struct sockaddr_in& addr, int fd);
@@ -30,37 +30,33 @@ int main(int argc, char ** argv)
 	bound_t bound;
 	bzero(&bound, sizeof(bound));
 	retrieve_task_from_server(bound, taker, server.sin_addr);
-	/*As soon a client takes a task it should calculate it in parallel using
-	 * the maximum threads as it could for progressive work*/
 
-	/*I'm going to calculate the task using maximum number of available threads  on the machine
-	 * This value is equal to the number of available virtua cpus in the machine*/
-	int threads = static_cast<int>(sysconf(_SC_NPROCESSORS_ONLN));
-	double save_start = bound.start;
-	unsigned current_number_proc = 0;
-	double step = (bound.finish - bound.start) / static_cast<double>(threads);
-	/*At this moment we understand that we want to execute the task on the number of threads
-	 * which is equal to the number of available processors in the system
-	 * So, Each thread will be distributed to its */
+	double res_per_machine = 0;
+	solve_problem(bound, res_per_machine);
 
+	/*After  calculating the result per machine we should send it to the peer server
+	 * who gave us this task and after it we should close the connection*/
+	ssize_t b_wr = write(taker, &res_per_machine, sizeof(res_per_machine));
+	if(b_wr != sizeof(res_per_machine))
+		PANIC(b_wr, "writing result per machine into the socket to server");
+
+	ret = close(taker);
+	if(ret != 0)
+		PANIC(ret, "closing SOCK_STREAM in worker");
 
 	return 0;
-
-
-
-
-
-
 }
+
 
 void retrieve_server_address(struct sockaddr_in& addr, int fd)
 {
 	assert( fd >= 0 );
-	struct sockaddr_in addrbind;
-	bzero(&addrbind, sizeof(addrbind));
-	addrbind.sin_family      = AF_INET;
-	addrbind.sin_port        = htons(BROADCAST_PORT);
-	addrbind.sin_addr.s_addr = INADDR_ANY;
+	struct sockaddr_in addrbind = {
+		.sin_family      = AF_INET,
+		.sin_addr.s_addr = INADDR_ANY,
+		.sin_port        = htons(BROADCAST_PORT),
+	};
+
 	socklen_t addrlen = sizeof(addrbind);
 	int ret = bind(fd, (struct sockaddr *)&addrbind, addrlen); // this part is pivotal -- otherwise a worker won't be able to get a broadcast packet
 	if(ret == -1)
@@ -84,24 +80,23 @@ void retrieve_server_address(struct sockaddr_in& addr, int fd)
 void retrieve_task_from_server(bound_t& bound, int fd, const struct in_addr& addr)
 {
 	assert(fd >= 0);
-	struct sockaddr_in addr_tcp;
-	bzero(&addr_tcp, sizeof(addr_tcp));
-	addr_tcp.sin_family  = AF_INET;
-	addr_tcp.sin_port    = htons(PORT_NUMBER);
-	addr_tcp.sin_addr    = addr;
+	struct sockaddr_in addr_tcp {
+		.sin_family  = AF_INET,
+		.sin_port    = htons(PORT_NUMBER),
+		.sin_addr    = addr
+	};
+
 	socklen_t addrlen = sizeof(addr_tcp);
+	/*This call felt down due to I haven't create a listening socket to this port so
+	 * the return value was errno == ECONNREFUSED */
 	int ret = connect(fd, (struct sockaddr*)(&addr_tcp), addrlen);
-	assert(addrlen == sizeof(addr_tcp));
 	if(ret == -1)
 		PANIC(ret, "making a connection to a peer server");
 
-	std::cerr << "Go to sleep state" << std::endl;
 	ssize_t read_bytes = read(fd, &bound, sizeof(bound));
 	if(read_bytes != sizeof(bound))
 		PANIC(read_bytes, "read bounds from a server for making a solution for the task");
 
-	/*After a client calculate a value corresponding to it he will write the result back
-	 * to the socket to make server know about the actual result*/
-
 }
+
 

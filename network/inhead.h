@@ -6,16 +6,18 @@
 #define _INHEAD_H_
 
 
-
-#include <iostream>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <cstdlib>
-#include <cassert>
 #include <cstring>
 #include <arpa/inet.h>
-#include <unistd.h>
+#include <sys/types.h>
+#include <algorithm>
+#include <sys/socket.h>
+
+
+#include "bound.h"
 
 /*I should implement some define for printing actual
  * information about the current error condition that has happened via the call*/
@@ -26,22 +28,24 @@ do{                                                         \
 	std::cerr << message << std::endl;                        \
 	std::cerr << "errno == " << errno << std::endl;            \
 	std::cerr << "Error line is : [ " << __LINE__  << " ]\n";   \
-}while(0)                                                        \
+	std::abort();                                                \
+}while(0)                                                         \
 
 #define PORT_NUMBER    50002
 #define BROADCAST_PORT 9009
+#define SALT -1
 /*this value will be used for creating a string to see the server address in
  * client for debug purpose*/
 #define MAX_LENGTH_IPV4_ADDRESS INET_ADDRSTRLEN
 
 #define BACKLOG SOMAXCONN
 
-typedef struct bound{
-	double start;
-	double finish;
-}bound_t;
 
+typedef struct task{
+	int fd;
+	struct sockaddr_in peer;
+	bound_t bound;
+}task_t;
 
-#define func(x) ( 1 / std::log( x ) )
 
 #endif //_INHEAD_H_
