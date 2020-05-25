@@ -65,11 +65,10 @@ void keepalive_settings_for_server(int fd)
 	ret = setsockopt(fd, IPPROTO_TCP, TCP_KEEPINTVL, &intvl, sizeof(intvl));
 	if(ret == -1)
 		PANIC(ret, "setting TCP_KEEPINTVL option on the server socket");
-	int probes = 3;
+	int probes = 2;
 	ret = setsockopt(fd, IPPROTO_TCP, TCP_KEEPCNT, &probes, sizeof(probes));
 	if(ret == -1)
 		PANIC(ret, "setting TCP_KEEPCNT option on the server socket");
-
 
 }
 

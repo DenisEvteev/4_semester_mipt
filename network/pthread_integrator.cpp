@@ -8,11 +8,12 @@ double res;
 pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
 const double move = 0.0001;
 
+#define LOOK_AT_THE_CPU_DATA_TYPE
 
 void solve_problem(const bound_t& bound, double& result_per_machine, int threads){
 	/*bound represent the general task to solve for this machine*/
 	int processors = static_cast<int>(sysconf(_SC_NPROCESSORS_ONLN)); // the maximum number of available processors in the system
-	std::cerr << "Number of available processors in machine : [ " << processors << " ]" <<  std::endl;
+	std::cerr << "Number of available processors in the machine : [ " << processors << " ]" <<  std::endl;
 	double save_start = bound.start;
 	unsigned current_number_proc = 0;
 	double step = (bound.finish - bound.start) / static_cast<double>(threads);
@@ -30,7 +31,9 @@ void solve_problem(const bound_t& bound, double& result_per_machine, int threads
 		auto arg = new cpu_data_t(bd, current_number_proc);
 
 
+
 #ifdef LOOK_AT_THE_CPU_DATA_TYPE
+		std::cout << "info about threads distribution : " << std::endl;
 		std::cout << arg->bd_->start << " : " << arg->bd_->finish  << " " << arg->cpu_ << std::endl;
 #endif
 		change_next_index_cpu(whole, remainder_np, current_number_proc,

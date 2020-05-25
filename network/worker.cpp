@@ -77,7 +77,6 @@ void retrieve_server_address(struct sockaddr_in& addr, int fd)
 	ret = recvfrom(fd, NULL, 0, 0, (struct sockaddr*)&addr, &addrlen);
 	if(ret == -1)
 		PANIC(ret, "retrieving a remote server address");
-	std::cerr << "I am client. I have received an adress of a server" << std::endl;
 #ifdef SHOW_SERVER_ADDRESS
 	char paddr[MAX_LENGTH_IPV4_ADDRESS];
 	std::memset(paddr, 0, MAX_LENGTH_IPV4_ADDRESS);
@@ -107,6 +106,8 @@ void retrieve_task_from_server(bound_t& bound, int fd, const struct in_addr& add
 	ssize_t read_bytes = read(fd, &bound, sizeof(bound));
 	if(read_bytes != sizeof(bound))
 		PANIC(read_bytes, "read bounds from a server for making a solution for the task");
+
+	std::cout << "bounds are : [ " << bound.start << " ; " << bound.finish << " ]" << std::endl;
 
 }
 
