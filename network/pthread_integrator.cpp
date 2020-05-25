@@ -8,12 +8,13 @@ double res;
 pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
 const double move = 0.0001;
 
+
 void solve_problem(const bound_t& bound, double& result_per_machine){
 	/*bound represent the general task to solve for this machine*/
 	int threads = static_cast<int>(sysconf(_SC_NPROCESSORS_ONLN));
 	std::cerr << "Number of available processors in machine : [ " << threads << " ]" <<  std::endl;
 	double save_start = bound.start;
-	unsigned current_number_proc = 0;
+	int current_number_proc = 0;
 	double step = (bound.finish - bound.start) / static_cast<double>(threads);
 	pthread_t* ids = new pthread_t[threads];
 

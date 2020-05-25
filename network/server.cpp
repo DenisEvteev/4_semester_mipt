@@ -57,15 +57,15 @@ int main(int argc, char ** argv)
 void keepalive_settings_for_server(int fd)
 {
 	assert(fd >= 0);
-	int seconds = 7;
+	int seconds = 3;
 	int ret = setsockopt(fd, IPPROTO_TCP, TCP_KEEPIDLE, &seconds, sizeof(seconds));
 	if(ret == -1)
 		PANIC(ret, "setting TCP_KEEPALIVE option on the server socket");
-	int intvl = 7;
+	int intvl = 2;
 	ret = setsockopt(fd, IPPROTO_TCP, TCP_KEEPINTVL, &intvl, sizeof(intvl));
 	if(ret == -1)
 		PANIC(ret, "setting TCP_KEEPINTVL option on the server socket");
-	int probes = 5;
+	int probes = 3;
 	ret = setsockopt(fd, IPPROTO_TCP, TCP_KEEPCNT, &probes, sizeof(probes));
 	if(ret == -1)
 		PANIC(ret, "setting TCP_KEEPCNT option on the server socket");
@@ -95,12 +95,19 @@ double read_result_per_machine(int nfds, task_t* tasks, int workers){
 		/*In this loop I check each file descriptors on own in the set*/
 		double tmp = 0;
 		int ret;
+		/*I have one interesting situation when a peer application was killed with a signal
+		 * For checking the case of available read operation from a worker it returns just zero due to we can read
+		 * now a data from peer socket*/
 		for(int i = 0; i < workers; ++i){
 			if(FD_ISSET(tasks[i].fd, &readfds)){
 				ret = read(tasks[i].fd, &tmp, sizeof(tmp));
+				if(ret == 0){
+					std::cout << "A worker has died, the process to finish" << std::endl;
+					exit(EXIT_FAILURE);
+				}
 				if(ret == -1)
 					PANIC(ret, "reading result per machine");
-				assert(ret == sizeof(tmp));
+
 				result += tmp;
 				ret = close(tasks[i].fd);
 				if(ret == -1)
