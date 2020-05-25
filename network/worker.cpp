@@ -57,8 +57,12 @@ void retrieve_server_address(struct sockaddr_in& addr, int fd)
 		.sin_addr        = { .s_addr = INADDR_ANY}
 	};
 
+	int getBroadcast = 1;
+	int ret = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &getBroadcast, sizeof(getBroadcast));
+	if(ret == -1)
+		PANIC(ret, "setting SO_REUSEADDR in worker");
 	socklen_t addrlen = sizeof(addrbind);
-	int ret = bind(fd, (struct sockaddr *)&addrbind, addrlen); // this part is pivotal -- otherwise a worker won't be able to get a broadcast packet
+	ret = bind(fd, (struct sockaddr *)&addrbind, addrlen); // this part is pivotal -- otherwise a worker won't be able to get a broadcast packet
 	if(ret == -1)
 		PANIC(ret, "binding client socket to well known address to receive a host's address");
 	/* receive a server address and preserve it for further

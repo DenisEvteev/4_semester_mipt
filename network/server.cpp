@@ -11,6 +11,7 @@ void init_tcp_connection(int fd);
 void produce_broadcast_to_network(int fd);
 void distribute_task_per_machine(task_t* tasks, int listen_fd, int workers, int& nfds);
 double read_result_per_machine(int nfds, task_t* tasks, int workers);
+void keepalive_settings_for_server(int fd);
 
 /*In my realization server will take an additional argument -- the number of clients in
  * the architecture. This way will simplify dealing with connections through a LAN
@@ -30,6 +31,7 @@ int main(int argc, char ** argv)
 		PANIC(giver, "creation of SOCK_STREAM socket");
 
 	init_tcp_connection(giver);
+	keepalive_settings_for_server(giver);
 
 	int broadcast = socket(AF_INET, SOCK_DGRAM, 0);
 	if(broadcast == -1)
@@ -51,6 +53,26 @@ int main(int argc, char ** argv)
 
 
 }
+
+void keepalive_settings_for_server(int fd)
+{
+	assert(fd >= 0);
+	int seconds = 7;
+	int ret = setsockopt(fd, IPPROTO_TCP, TCP_KEEPIDLE, &seconds, sizeof(seconds));
+	if(ret == -1)
+		PANIC(ret, "setting TCP_KEEPALIVE option on the server socket");
+	int intvl = 7;
+	ret = setsockopt(fd, IPPROTO_TCP, TCP_KEEPINTVL, &intvl, sizeof(intvl));
+	if(ret == -1)
+		PANIC(ret, "setting TCP_KEEPINTVL option on the server socket");
+	int probes = 5;
+	ret = setsockopt(fd, IPPROTO_TCP, TCP_KEEPCNT, &probes, sizeof(probes));
+	if(ret == -1)
+		PANIC(ret, "setting TCP_KEEPCNT option on the server socket");
+
+
+}
+
 double read_result_per_machine(int nfds, task_t* tasks, int workers){
 	assert(nfds > 0 && tasks && workers > 0);
 	fd_set readfds;
@@ -78,6 +100,7 @@ double read_result_per_machine(int nfds, task_t* tasks, int workers){
 				ret = read(tasks[i].fd, &tmp, sizeof(tmp));
 				if(ret == -1)
 					PANIC(ret, "reading result per machine");
+				assert(ret == sizeof(tmp));
 				result += tmp;
 				ret = close(tasks[i].fd);
 				if(ret == -1)
@@ -97,7 +120,7 @@ void distribute_task_per_machine(task_t * tasks, int listen_fd, int workers, int
 	socklen_t addrlen = sizeof(struct sockaddr_in);
 	double save_start = START;
 	double step = (FINISH - START) / static_cast<double>(workers);
-
+	int keepaliveEnabled = 1;
 	for(int i = 0; i < workers; ++i)
 	{
 		bzero(&tasks[i].peer, sizeof(struct sockaddr));
@@ -105,6 +128,9 @@ void distribute_task_per_machine(task_t * tasks, int listen_fd, int workers, int
 		if(tasks[i].fd == -1)
 			PANIC(tasks[i].fd, "accepting incomming connection");
 		assert(addrlen == sizeof(struct sockaddr_in));
+		ret = setsockopt(tasks[i].fd, SOL_SOCKET, SO_KEEPALIVE, &keepaliveEnabled, sizeof(keepaliveEnabled));
+		if(ret == -1)
+			PANIC(ret, "making a server connection KEEPALIVE");
 		nfds = std::max(nfds, tasks[i].fd);
 		tasks[i].bound.start  = save_start;
 		tasks[i].bound.finish = ( i == workers - 1 ) ? FINISH : save_start + step;
@@ -127,7 +153,11 @@ void init_tcp_connection(int fd){
 		.sin_addr     = { .s_addr = INADDR_ANY}
 	};
 
-	int ret = bind(fd, (struct sockaddr*)&bindaddr, sizeof(bindaddr));
+	int reuseaddrEnabled = 1;
+	int ret = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuseaddrEnabled, sizeof(reuseaddrEnabled));
+	if(ret == -1)
+		PANIC(ret, "enabling SO_REUSEADDR option to the server process");
+ 	ret = bind(fd, (struct sockaddr*)&bindaddr, sizeof(bindaddr));
 	if(ret == -1)
 		PANIC(ret, "binding a socket to a well-known adress");
 
@@ -148,23 +178,12 @@ void produce_broadcast_to_network(int fd){
 		.sin_port        = htons(BROADCAST_PORT),
 		.sin_addr        = { .s_addr = htonl(INADDR_BROADCAST) }
 	};
-	 // this make os to choose an ephemeral port for communication via a network
-	/*At this moment we want to send a BROADCAST datagram via internet domain socket
-	 * for make all clients to know the address of server process
-	 * which will give a special tasks for them*/
+
+
 	ret = sendto(fd, NULL, 0, 0, (struct sockaddr*)&addr, sizeof(addr)); // we can send a datagram of zero length
 	if(ret == -1)
 		PANIC(ret, "sending BROADCAST to the network");
 
-	/*As the input argument for server provide the exact number of clients in the network
-	 * which will accept incoming tasks, So I've decided not to wait for the responses from
-	 * clients to the broadcast datagram message*/
-
-	/*FIXME : I should think about the case of waiting response from
-	 * all the clients via UDP connection for waiting the exact number of them as was provided
-	 * via argument in main function I should set a signal -- SIGALARM  to wait for exact period of time
-	 * while all the clients respond to the BROADCAST datagram otherwise I should delete the connection
-	 * via killing the server process*/
 
 	ret = close(fd);
 	if(ret != 0)
