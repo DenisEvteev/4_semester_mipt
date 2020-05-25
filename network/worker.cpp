@@ -11,6 +11,13 @@ void retrieve_server_address(struct sockaddr_in& addr, int fd);
 
 int main(int argc, char ** argv)
 {
+	if(argc != 2){
+		std::cout << "Bad amount of arguments for worker" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+	int threads = std::atoi(argv[1]); // worker will take an argument of number of threads to run a program with
+	assert(threads > 0);
+
 	struct sockaddr_in server; //this variable will contain the address of peer socket host
 	bzero(&server, sizeof(server));
 
@@ -32,7 +39,7 @@ int main(int argc, char ** argv)
 	retrieve_task_from_server(bound, taker, server.sin_addr);
 
 	double res_per_machine = 0;
-	solve_problem(bound, res_per_machine);
+	solve_problem(bound, res_per_machine, threads);
 
 	/*After  calculating the result per machine we should send it to the peer server
 	 * who gave us this task and after it we should close the connection*/

@@ -5,7 +5,7 @@
 #include "inhead.h"
 
 const double START = 2;
-const double FINISH = 70002;
+const double FINISH = 100002;
 
 void init_tcp_connection(int fd);
 void produce_broadcast_to_network(int fd);

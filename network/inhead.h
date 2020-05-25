@@ -29,7 +29,7 @@ do{                                                         \
 	std::cerr << message << std::endl;                        \
 	std::cerr << "errno == " << errno << std::endl;            \
 	std::cerr << "Error line is : [ " << __LINE__  << " ]\n";   \
-	std::abort();                                                \
+	exit(EXIT_FAILURE);                                          \
 }while(0)                                                         \
 
 #define PORT_NUMBER    50002
