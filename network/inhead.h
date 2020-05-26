@@ -34,7 +34,7 @@ do{                                                         \
 
 #define PORT_NUMBER    50002
 #define BROADCAST_PORT 9009
-#define SALT -1
+
 /*this value will be used for creating a string to see the server address in
  * client for debug purpose*/
 #define MAX_LENGTH_IPV4_ADDRESS INET_ADDRSTRLEN
@@ -43,9 +43,12 @@ do{                                                         \
 
 
 typedef struct task{
-	int fd;
-	struct sockaddr_in peer;
-	bound_t bound;
+	int fd                  = -1;
+	struct sockaddr_in peer = {};
+	bound_t bound           = {0, 0};
+	int number_thr          = 0;
+	bool wrote              = false;
+	bool read_r             = false;
 }task_t;
 
 

@@ -103,10 +103,13 @@ void retrieve_task_from_server(bound_t& bound, int fd, const struct in_addr& add
 	if(ret == -1)
 		PANIC(ret, "making a connection to a peer server");
 
+	/*Write number of threads for server to distribute the task with
+	 * right proportions for each worker*/
 	ssize_t write_bytes = write(fd, &threads, sizeof(threads));
 	if(write_bytes != sizeof(threads))
 		PANIC(write_bytes, "writing number of threads for server from worker");
 
+	/*In here we read the bounds of task to solve for this machine*/
 	ssize_t read_bytes = read(fd, &bound, sizeof(bound));
 	if(read_bytes != sizeof(bound))
 		PANIC(read_bytes, "read bounds from a server for making a solution for the task");
