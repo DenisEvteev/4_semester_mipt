@@ -10,7 +10,7 @@ const double move = 0.0001;
 
 void solve_problem(const bound_t& bound, double& result_per_machine, int threds){
 	/*bound represent the general task to solve for this machine*/
-	int processors = static_cast<int>(sysconf(_SC_NPROCESSORS_ONLN));
+	unsigned processors = static_cast<int>(sysconf(_SC_NPROCESSORS_ONLN));
 	std::cerr << "Number of available processors in machine : [ " << processors << " ]" <<  std::endl;
 	double save_start = bound.start;
 	unsigned current_number_proc = 0;

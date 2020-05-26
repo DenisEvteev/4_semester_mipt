@@ -99,9 +99,6 @@ double perform_parallel_tasks_per_machine(task_t* tasks, int listen_fd, int work
 
 	int read_threads_number = 0;
 	fd_set readfds, writefds;
-	FD_ZERO(&readfds);
-	FD_ZERO(&writefds);
-	FD_SET(listen_fd, &readfds);
 	double result = 0, tmp = 0;
 	int count = 0, thr = 0;
 	ssize_t read_b, write_b;
@@ -113,6 +110,29 @@ double perform_parallel_tasks_per_machine(task_t* tasks, int listen_fd, int work
 
 	int max = listen_fd;
 	for(;;){
+		FD_ZERO(&readfds);
+		FD_ZERO(&writefds);
+
+		if(thr < workers){
+			FD_SET(listen_fd, &readfds);
+			++count;
+		}
+		for(int i = 0; i < workers; ++i)
+		{
+			/* this filling both for : reading a thread number and result per machine*/
+			if(FD(i) >= 0 && !tasks[i].read_r){
+				FD_SET(FD(i), &readfds);
+				++count;
+			}
+			if(read_threads_number == workers && !tasks[i].wrote){
+				assert(FD(i) >= 0 && NUM_THR > 0);
+				FD_SET(FD(i), &writefds);
+				++count;
+			}
+
+		}
+		if(count == 0)
+			break;
 		++max;
 		ret = select(( max > FD_SETSIZE ? FD_SETSIZE : max ),  &readfds, &writefds, NULL, NULL);
 		if(ret == -1)
@@ -177,28 +197,6 @@ double perform_parallel_tasks_per_machine(task_t* tasks, int listen_fd, int work
 
 
 		}
-		FD_ZERO(&readfds);
-		FD_ZERO(&writefds);
-		if(thr < workers){
-			FD_SET(listen_fd, &readfds);
-			++count;
-		}
-		for(int i = 0; i < workers; ++i)
-		{
-			/* this filling both for : reading a thread number and result per machine*/
-			if(FD(i) >= 0 && !tasks[i].read_r){
-				FD_SET(FD(i), &readfds);
-				++count;
-			}
-			if(read_threads_number == workers && !tasks[i].wrote){
-				assert(FD(i) >= 0 && NUM_THR > 0);
-				FD_SET(FD(i), &writefds);
-				++count;
-			}
-
-		}
-		if(count == 0)
-			break;
 		count = 0;
 	}
 
