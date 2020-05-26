@@ -5,7 +5,7 @@
 #include "inhead.h"
 
 const double START = 2;
-const double FINISH = 100002;
+const double FINISH = 70002;
 
 void init_tcp_connection(int fd);
 void produce_broadcast_to_network(int fd);
@@ -99,6 +99,9 @@ double perform_parallel_tasks_per_machine(task_t* tasks, int listen_fd, int work
 
 	int read_threads_number = 0;
 	fd_set readfds, writefds;
+	FD_ZERO(&readfds);
+	FD_ZERO(&writefds);
+	FD_SET(listen_fd, &readfds);
 	double result = 0, tmp = 0;
 	int count = 0, thr = 0;
 	ssize_t read_b, write_b;
@@ -107,34 +110,14 @@ double perform_parallel_tasks_per_machine(task_t* tasks, int listen_fd, int work
 #define STEP (FINISH - START) / static_cast<double>(genthrs)
 #define FD(i) tasks[i].fd
 #define NUM_THR tasks[i].number_thr
-	
+
+	int max = listen_fd;
 	for(;;){
-		FD_ZERO(&readfds);
-		FD_ZERO(&writefds);
-
-		if(thr < workers){
-			FD_SET(listen_fd, &readfds);
-			++count;
-		}
-		for(int i = 0; i < workers; ++i)
-		{
-			/* this filling both for : reading a thread number and result per machine*/
-			if(FD(i) >= 0 && !tasks[i].read_r){
-				FD_SET(FD(i), &readfds);
-				++count;
-			}
-			if(read_threads_number == workers && !tasks[i].wrote){
-				assert(FD(i) >= 0 && NUM_THR > 0);
-				FD_SET(FD(i), &writefds);
-				++count;
-			}
-
-		}
-		if(count == 0)
-			break;
-		ret = select(FD_SETSIZE, &readfds, &writefds, NULL, NULL);
+		++max;
+		ret = select(( max > FD_SETSIZE ? FD_SETSIZE : max ),  &readfds, &writefds, NULL, NULL);
 		if(ret == -1)
 			PANIC(ret, "select for accepting incomming connections and read number of threads");
+
 
 		if(FD_ISSET(listen_fd, &readfds)) // accept connection
 		{
@@ -146,6 +129,7 @@ double perform_parallel_tasks_per_machine(task_t* tasks, int listen_fd, int work
 			if(ret == -1)
 				PANIC(ret, "making a server connection KEEPALIVE");
 			++thr;
+			max = std::max(max, FD(thr));
 		}
 #define SEG tasks[i].bound
 		for(int i = 0; i < workers; ++i){
@@ -164,7 +148,7 @@ double perform_parallel_tasks_per_machine(task_t* tasks, int listen_fd, int work
 			}
 			/*Now I should think about the conditions under which I can consider the file descriptors
 			 * ready in terms for writing a special task bounds for calculating */
-			if(FD_ISSET(FD(i), &writefds)){
+			if(FD(i) >= 0 && FD_ISSET(FD(i), &writefds)){
 				assert(NUM_THR > 0);
 				SEG.start = save_start;
 				/*How can we consider this point of finish thing*/
@@ -193,8 +177,31 @@ double perform_parallel_tasks_per_machine(task_t* tasks, int listen_fd, int work
 
 
 		}
+		FD_ZERO(&readfds);
+		FD_ZERO(&writefds);
+		if(thr < workers){
+			FD_SET(listen_fd, &readfds);
+			++count;
+		}
+		for(int i = 0; i < workers; ++i)
+		{
+			/* this filling both for : reading a thread number and result per machine*/
+			if(FD(i) >= 0 && !tasks[i].read_r){
+				FD_SET(FD(i), &readfds);
+				++count;
+			}
+			if(read_threads_number == workers && !tasks[i].wrote){
+				assert(FD(i) >= 0 && NUM_THR > 0);
+				FD_SET(FD(i), &writefds);
+				++count;
+			}
+
+		}
+		if(count == 0)
+			break;
 		count = 0;
 	}
+
 	return result;
 }
 
