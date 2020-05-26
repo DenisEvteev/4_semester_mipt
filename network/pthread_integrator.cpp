@@ -33,7 +33,6 @@ void solve_problem(const bound_t& bound, double& result_per_machine, int threads
 
 
 #ifdef LOOK_AT_THE_CPU_DATA_TYPE
-		std::cout << "info about threads distribution : " << std::endl;
 		std::cout << arg->bd_->start << " : " << arg->bd_->finish  << " " << arg->cpu_ << std::endl;
 #endif
 		change_next_index_cpu(whole, remainder_np, current_number_proc,

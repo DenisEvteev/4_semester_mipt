@@ -6,7 +6,7 @@
 #include "inhead.h"
 #include "pthread_integrator.h"
 
-void retrieve_task_from_server(bound_t& bound, int fd, const struct in_addr& addr);
+void retrieve_task_from_server(bound_t& bound, int fd, const struct in_addr& addr, int threads);
 void retrieve_server_address(struct sockaddr_in& addr, int fd);
 
 int main(int argc, char ** argv)
@@ -36,7 +36,7 @@ int main(int argc, char ** argv)
 		PANIC(taker, "creation SOCK_STREAM in client");
 	bound_t bound;
 	bzero(&bound, sizeof(bound));
-	retrieve_task_from_server(bound, taker, server.sin_addr);
+	retrieve_task_from_server(bound, taker, server.sin_addr, threads);
 
 	double res_per_machine = 0;
 	solve_problem(bound, res_per_machine, threads);
@@ -87,9 +87,9 @@ void retrieve_server_address(struct sockaddr_in& addr, int fd)
 
 }
 
-void retrieve_task_from_server(bound_t& bound, int fd, const struct in_addr& addr)
+void retrieve_task_from_server(bound_t& bound, int fd, const struct in_addr& addr, int threads)
 {
-	assert(fd >= 0);
+	assert(fd >= 0 && threads >= 1);
 	struct sockaddr_in addr_tcp {
 		.sin_family  = AF_INET,
 		.sin_port    = htons(PORT_NUMBER),
@@ -102,6 +102,10 @@ void retrieve_task_from_server(bound_t& bound, int fd, const struct in_addr& add
 	int ret = connect(fd, (struct sockaddr*)(&addr_tcp), addrlen);
 	if(ret == -1)
 		PANIC(ret, "making a connection to a peer server");
+
+	ssize_t write_bytes = write(fd, &threads, sizeof(threads));
+	if(write_bytes != sizeof(threads))
+		PANIC(write_bytes, "writing number of threads for server from worker");
 
 	ssize_t read_bytes = read(fd, &bound, sizeof(bound));
 	if(read_bytes != sizeof(bound))

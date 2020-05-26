@@ -57,15 +57,15 @@ int main(int argc, char ** argv)
 void keepalive_settings_for_server(int fd)
 {
 	assert(fd >= 0);
-	int seconds = 3;
+	int seconds = 5;
 	int ret = setsockopt(fd, IPPROTO_TCP, TCP_KEEPIDLE, &seconds, sizeof(seconds));
 	if(ret == -1)
 		PANIC(ret, "setting TCP_KEEPALIVE option on the server socket");
-	int intvl = 2;
+	int intvl = 1;
 	ret = setsockopt(fd, IPPROTO_TCP, TCP_KEEPINTVL, &intvl, sizeof(intvl));
 	if(ret == -1)
 		PANIC(ret, "setting TCP_KEEPINTVL option on the server socket");
-	int probes = 2;
+	int probes = 5;
 	ret = setsockopt(fd, IPPROTO_TCP, TCP_KEEPCNT, &probes, sizeof(probes));
 	if(ret == -1)
 		PANIC(ret, "setting TCP_KEEPCNT option on the server socket");
@@ -137,6 +137,13 @@ void distribute_task_per_machine(task_t * tasks, int listen_fd, int workers, int
 		ret = setsockopt(tasks[i].fd, SOL_SOCKET, SO_KEEPALIVE, &keepaliveEnabled, sizeof(keepaliveEnabled));
 		if(ret == -1)
 			PANIC(ret, "making a server connection KEEPALIVE");
+
+		int thr = 0;
+		ssize_t read_b = read(tasks[i].fd, &thr, sizeof(thr));
+		if(read_b != sizeof(read_b))
+			PANIC(read_b, "read number of threads from worker");
+		std::cout << thr << std::endl;
+
 		nfds = std::max(nfds, tasks[i].fd);
 		tasks[i].bound.start  = save_start;
 		tasks[i].bound.finish = ( i == workers - 1 ) ? FINISH : save_start + step;
