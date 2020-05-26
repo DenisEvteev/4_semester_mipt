@@ -13,6 +13,11 @@ void keepalive_settings_for_server(int fd);
 /*This function accepts all the connections with peer workers just in a loop*/
 double perform_parallel_tasks_per_machine(task_t* tasks, int listen_fd, int workers);
 
+/*I have made it !!! It's a very happy moment in the life. I promised my brother that
+ * I will succed in it --- and I've made. It was a very difficult year of programming
+ * So, thanks Denis Lunev for this I will never forger about such adventures
+ *
+ * NOW I'm going to make a commit with a message about a VICTORY!!! */
 
 int main(int argc, char ** argv)
 {
