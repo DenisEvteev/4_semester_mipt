@@ -10,8 +10,8 @@
 #include <cassert>
 
 typedef struct bound{
-	double start;
-	double finish;
+	double start  = 0;
+	double finish = 0;
 	bound(double st, double f)
 		: start(st), finish(f)
 	{

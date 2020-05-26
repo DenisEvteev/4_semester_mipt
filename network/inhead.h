@@ -45,7 +45,7 @@ do{                                                         \
 typedef struct task{
 	int fd                  = -1;
 	struct sockaddr_in peer = {};
-	bound_t bound           = {0, 0};
+	bound_t bound               ;
 	int number_thr          = 0;
 	bool wrote              = false;
 	bool read_r             = false;

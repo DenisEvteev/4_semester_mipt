@@ -35,7 +35,6 @@ int main(int argc, char ** argv)
 	if(taker == -1)
 		PANIC(taker, "creation SOCK_STREAM in client");
 	bound_t bound;
-	bzero(&bound, sizeof(bound));
 	retrieve_task_from_server(bound, taker, server.sin_addr, threads);
 
 	double res_per_machine = 0;

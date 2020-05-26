@@ -3,7 +3,7 @@ one for server process and another for worker one
 
 CXX          = g++
 PTHREAD_FLAG = -pthread
-FLAGS        = -Wall -std=c++11
+FLAGS        = -Wall -std=c++11 -O3
 CXXFLAGS    := $(FLAGS) $(PTHREAD_FLAG)
 
 HEADERS          = inhead.h bound.h
