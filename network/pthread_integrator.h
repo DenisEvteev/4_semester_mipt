@@ -37,11 +37,9 @@ do{                                                                    \
 #define func(x) ( 1 / std::log( x ) )
 
 void solve_problem(const bound_t& bound, double& result_per_machine, int threads);
-void change_next_index_cpu(const unsigned& whole, unsigned& remainder_np, unsigned& current_number_proc,
-	int& save_current_number_for_proc, int& is_remainder_decreased);
 void* run(void* arg);
 void distribute_relative_cpu(const unsigned cpu);
-void* stupid_routine(void* arg);
+
 
 
 

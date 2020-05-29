@@ -2,6 +2,13 @@
 // Created by user on 15/05/2020.
 //
 
+/*I have made it !!! It's a very happy moment in the life. I promised my brother that
+ * I will succed in it --- and I've made. It was a very difficult year of programming
+ * So, thanks Denis Lunev for this I will never forger about such adventures
+ *
+ * NOW I'm going to make a commit with a message about a VICTORY!!! */
+
+
 #include "inhead.h"
 
 const double START = 2;
@@ -10,14 +17,13 @@ const double FINISH = 70002;
 void init_tcp_connection(int fd);
 void produce_broadcast_to_network(int fd);
 void keepalive_settings_for_server(int fd);
-/*This function accepts all the connections with peer workers just in a loop*/
 double perform_parallel_tasks_per_machine(task_t* tasks, int listen_fd, int workers);
-
-/*I have made it !!! It's a very happy moment in the life. I promised my brother that
- * I will succed in it --- and I've made. It was a very difficult year of programming
- * So, thanks Denis Lunev for this I will never forger about such adventures
- *
- * NOW I'm going to make a commit with a message about a VICTORY!!! */
+void accept_worker(int listen_fd, int& fd, int& max);
+void read_number_of_threads(int fd, int& numthr);
+void write_task_to_worker(task_t* tasks, int id_, double& save_start, const int genthrs);
+double read_result_from_worker(int fd);
+int init_sets_for_monitoring(task_t* tasks, fd_set& readfds, fd_set& writefds, int workers, int listen_fd,
+	int thr, int read_threads_number);
 
 int main(int argc, char ** argv)
 {
@@ -95,48 +101,31 @@ void init_tcp_connection(int fd){
 
 }
 
+#define STEP(gen_num_threads) (FINISH - START) / static_cast<double>(gen_num_threads)
+#define FD(i)                 tasks[i].fd
+#define NUM_THR(i)            tasks[i].number_thr
+#define SEG(i)                tasks[i].bound
+#define WR(i)                 tasks[i].wrote
+#define RD(i)                 tasks[i].read_r
+
 double perform_parallel_tasks_per_machine(task_t* tasks, int listen_fd, int workers){
 	assert(tasks && listen_fd >= 0 && workers > 0);
 	int ret;
 	int genthrs = 0; //this variable will save the general number of threads in all workers
-	socklen_t addrlen = sizeof(struct sockaddr_in);
-	int keepaliveEnabled = 1;
 
 	int read_threads_number = 0;
 	fd_set readfds, writefds;
-	double result = 0, tmp = 0;
-	int count = 0, thr = 0;
-	ssize_t read_b, write_b;
+
+	double result = 0;
+	int thr = 0;
 
 	double save_start = START;
-#define STEP (FINISH - START) / static_cast<double>(genthrs)
-#define FD(i) tasks[i].fd
-#define NUM_THR tasks[i].number_thr
 
 	int max = listen_fd;
 	for(;;){
-		FD_ZERO(&readfds);
-		FD_ZERO(&writefds);
 
-		if(thr < workers){
-			FD_SET(listen_fd, &readfds);
-			++count;
-		}
-		for(int i = 0; i < workers; ++i)
-		{
-			/* this filling both for : reading a thread number and result per machine*/
-			if(FD(i) >= 0 && !tasks[i].read_r){
-				FD_SET(FD(i), &readfds);
-				++count;
-			}
-			if(read_threads_number == workers && !tasks[i].wrote){
-				assert(FD(i) >= 0 && NUM_THR > 0);
-				FD_SET(FD(i), &writefds);
-				++count;
-			}
-
-		}
-		if(count == 0)
+		if(init_sets_for_monitoring(tasks, readfds, writefds,
+			workers, listen_fd, thr, read_threads_number) == 0)
 			break;
 		++max;
 		ret = select(( max > FD_SETSIZE ? FD_SETSIZE : max ),  &readfds, &writefds, NULL, NULL);
@@ -146,72 +135,126 @@ double perform_parallel_tasks_per_machine(task_t* tasks, int listen_fd, int work
 
 		if(FD_ISSET(listen_fd, &readfds)) // accept connection
 		{
-			FD(thr) = accept4(listen_fd, (struct sockaddr*)(&tasks[thr].peer), &addrlen, SOCK_NONBLOCK);
-			if(FD(thr) == -1)
-				PANIC(FD(thr), "accepting incomming connection");
-			assert(addrlen == sizeof(struct sockaddr_in));
-			ret = setsockopt(FD(thr), SOL_SOCKET, SO_KEEPALIVE, &keepaliveEnabled, sizeof(keepaliveEnabled));
-			if(ret == -1)
-				PANIC(ret, "making a server connection KEEPALIVE");
+			accept_worker(listen_fd, FD(thr), max);
 			++thr;
-			max = std::max(max, FD(thr));
 		}
-#define SEG tasks[i].bound
 		for(int i = 0; i < workers; ++i){
-			//we want to read number of threads in a worker
-			if(FD(i) >= 0 && NUM_THR == 0 && FD_ISSET(FD(i), &readfds))
+
+			if(FD(i) >= 0 && NUM_THR(i) == 0 && FD_ISSET(FD(i), &readfds))
 			{
-				//read number of threads from a worker
-				read_b = read(FD(i), &NUM_THR, sizeof(NUM_THR));
-				if(read_b != sizeof(NUM_THR))
-					PANIC(read_b, "read number of threads from worker");
-				std::cout << "Number threads : " << NUM_THR << std::endl;
-				genthrs += NUM_THR; // increase the general number of threads in all incarnations of tcp connection
-				/*Now we should increment a value which corresponds for condition under which
-				 * we can write bounds for a peer server*/
+				read_number_of_threads(FD(i), NUM_THR(i));
 				read_threads_number++;
+				assert(NUM_THR(i) > 0);
+				genthrs += NUM_THR(i);
 			}
-			/*Now I should think about the conditions under which I can consider the file descriptors
-			 * ready in terms for writing a special task bounds for calculating */
+
 			if(FD(i) >= 0 && FD_ISSET(FD(i), &writefds)){
-				assert(NUM_THR > 0);
-				SEG.start = save_start;
-				/*How can we consider this point of finish thing*/
-				if(FINISH - save_start <= STEP)
-					SEG.finish = FINISH;
-				else SEG.finish = save_start + NUM_THR * STEP;
-				save_start = SEG.finish;
-
-				write_b = write(FD(i), &SEG, sizeof(SEG));
-				if(write_b != sizeof(SEG))
-					PANIC(write_b, "error in giving task to a worker");
-				tasks[i].wrote = true;
+				write_task_to_worker(tasks, i, save_start, genthrs);
+				WR(i) = true;
 			}
 
-			if(tasks[i].wrote && FD_ISSET(FD(i), &readfds)){
-				read_b = read(FD(i), &tmp, sizeof(tmp));
-				if(read_b != sizeof(tmp))
-					PANIC(read_b, "reading result per machine");
-
-				result += tmp;
-				tasks[i].read_r = true;
-				ret = close(FD(i));
-				if(ret != 0)
-					PANIC(ret, "closing end-point in server (passive closing)");
+			if(WR(i) && FD_ISSET(FD(i), &readfds)){
+				result += read_result_from_worker(FD(i));
+				RD(i) = true;
 			}
 
 
 		}
-		count = 0;
 	}
 
 	return result;
+}
+
+void accept_worker(int listen_fd, int& fd, int& max)
+{
+	/*at the case of accepting new incomming connection
+	 * file descriptor should be filled with negative value*/
+	assert(fd == -1);
+	int keepaliveEnabled = 1;
+	int ret;
+	fd = accept4(listen_fd, NULL, 0, SOCK_NONBLOCK);
+	if(fd == -1)
+		PANIC(fd, "accepting incomming connection");
+	ret = setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &keepaliveEnabled, sizeof(keepaliveEnabled));
+	if(ret == -1)
+		PANIC(ret, "making a server connection KEEPALIVE");
+	max = std::max(max, fd);
+}
+
+void read_number_of_threads(int fd, int& numthr){
+	ssize_t read_b = 0;
+	read_b = read(fd, &numthr, sizeof(numthr));
+	if(read_b != sizeof(numthr))
+		PANIC(read_b, "read number of threads from worker");
+	std::cout << "Number threads in fd : [ " << fd << " ] === " << numthr << std::endl;
+}
+
+void write_task_to_worker(task_t* tasks, int id_, double& save_start, const int genthrs)
+{
+	assert(tasks);
+	assert(NUM_THR(id_) > 0);
+	ssize_t write_b;
+	SEG(id_).start = save_start;
+
+	if(FINISH - save_start <= STEP(genthrs))
+		SEG(id_).finish = FINISH;
+	else SEG(id_).finish = save_start + NUM_THR(id_) * STEP(genthrs);
+	save_start = SEG(id_).finish;
+
+	write_b = write(FD(id_), &SEG(id_), sizeof(SEG(id_)));
+	if(write_b != sizeof(SEG(id_)))
+		PANIC(write_b, "error in giving task to a worker");
+}
+
+double read_result_from_worker(int fd)
+{
+	assert(fd >= 0);
+	double tmp = 0;
+	ssize_t read_b = read(fd, &tmp, sizeof(tmp));
+	if(read_b != sizeof(tmp))
+		PANIC(read_b, "reading result per machine");
+
+	int ret = close(fd);
+	if(ret != 0)
+		PANIC(ret, "closing end-point in server (passive closing)");
+
+	return tmp;
+}
+
+int init_sets_for_monitoring(task_t* tasks, fd_set& readfds, fd_set& writefds, int workers, int listen_fd,
+	int thr, int read_threads_number)
+{
+	FD_ZERO(&readfds);
+	FD_ZERO(&writefds);
+
+	int count = 0;
+	if(thr < workers){
+		FD_SET(listen_fd, &readfds);
+		++count;
+	}
+	for(int i = 0; i < workers; ++i)
+	{
+		/* this filling both for : reading a thread number and result per machine*/
+		if(FD(i) >= 0 && !RD(i)){
+			FD_SET(FD(i), &readfds);
+			++count;
+		}
+		if(read_threads_number == workers && !WR(i)){
+			assert(FD(i) >= 0 && NUM_THR(i) > 0);
+			FD_SET(FD(i), &writefds);
+			++count;
+		}
+
+	}
+	return count;
 }
 
 #undef STEP
 #undef FD
 #undef SEG
 #undef NUM_THR
+#undef WR
+#undef RD
 
 void produce_broadcast_to_network(int fd){
 	assert(fd >= 0);
